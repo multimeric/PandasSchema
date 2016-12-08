@@ -1,7 +1,7 @@
 import pandas as pd
 import typing
 
-from errors import InvalidSchemaError
+from errors import PanSchInvalidSchemaError
 from validation_error import ValidationError
 from column import Column
 
@@ -18,13 +18,13 @@ class Schema:
         :param ordered: True if the data frame must be in the same order as the schema. Defaults to False
         """
         if not columns:
-            raise InvalidSchemaError('An instance of the schema class must have a columns list')
+            raise PanSchInvalidSchemaError('An instance of the schema class must have a columns list')
 
         if not isinstance(columns, typing.List[Column]):
-            raise InvalidSchemaError('The columns field must be a list of Column objects')
+            raise PanSchInvalidSchemaError('The columns field must be a list of Column objects')
 
         if not isinstance(ordered, bool):
-            raise InvalidSchemaError('The ordered field must be a boolean')
+            raise PanSchInvalidSchemaError('The ordered field must be a boolean')
 
         self.columns = list(columns)
         self.ordered = ordered
@@ -65,13 +65,6 @@ class Schema:
 
         # Iterate over each pair of schema columns and data frame series and run validations
         for series, column in column_pairs:
-            for validation in column.validations:
-                for row in df[~validation.validate(series)].itertuples():
-                    errors.append(ValidationError(
-                       validation.get_message(getattr(row, column.name)),
-                           getattr(row, rownum),
-                           column.name
-                       )
-                    )
+            errors += column.validate(series)
 
         return errors

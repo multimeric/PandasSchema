@@ -1,10 +1,16 @@
-class PandasSchemaError(BaseException):
+class PanSchError(BaseException):
     """
     Base class for all pandas_schema exceptions
     """
 
 
-class InvalidSchemaError(BaseException):
+class PanSchInvalidSchemaError(PanSchError):
     """
-    Used when the schema is malformed, whether or not it fits the data frame
+    The schema is malformed, whether or not it fits the data frame
+    """
+
+
+class PanSchArgumentError(PanSchError):
+    """
+    An argument passed to a function has an invalid type or value
     """

@@ -4,6 +4,8 @@ import datetime
 import pandas as pd
 import typing
 
+from errors import PanSchArgumentError
+
 
 class Validation:
     """
@@ -23,28 +25,54 @@ class Validation:
     def get_message(self, value):
         return self._message
 
-    @property
     def validate(self, series: pd.Series) -> pd.Series:
         return self._validation(series)
 
 
-class CanCastValidation(Validation):
-    def __init__(self, type):
-        self.cast_type = type
+class CanCallValidation(Validation):
+    """
+    Validates if a given function can be called on each element in a column without raising an exception
+    """
+
+    def __init__(self, func):
+        if callable(type):
+            self.callable = func
+        else:
+            raise PanSchArgumentError('The object "{}" passed to CanCallValidation is not callable!'.format(type))
 
     def get_message(self, value):
-        return 'cannot be cast to type {}'.format(self.cast_type)
+        return 'raised an exception when the callable {} was called on it'.format(self.callable)
 
-    @staticmethod
-    def can_cast(var, type):
+    def can_call(self, var):
         try:
-            type(var)
+            self.callable(var)
             return True
         except:
             return False
 
-    def validate(self, series: pd.Series):
-        return series.apply(self.can_cast)
+    def validate(self, series: pd.Series) -> pd.Series:
+        return series.apply(self.can_call)
+
+
+class CanConvertValidation(CanCallValidation):
+    """
+    Checks if each element in a column can be converted to a Python object type
+    """
+
+    """
+    Internally this uses the same logic as CanCallValidation since all types are callable in python.
+    However this class overrides the error messages to make them more directed towards types
+    """
+
+    def __init__(self, _type):
+        if isinstance(_type, type):
+            super(CanConvertValidation, self).__init__(_type)
+        else:
+            raise PanSchArgumentError('{} is not a valid type'.format(_type))
+
+    def get_message(self, value):
+        return 'cannot be converted to type {}'.format(self.callable)
+
 
 
 class MatchesRegexValidation(Validation):
@@ -62,8 +90,9 @@ class MatchesRegexValidation(Validation):
     def get_message(self, value):
         return 'does not match the regex {}'.format(self.pattern)
 
-    def validate(self, series: pd.Series):
+    def validate(self, series: pd.Series) -> pd.Series:
         return series.str.contains(self.pattern)
+
 
 class TrailingWhitespaceValidation(Validation):
     """
@@ -76,8 +105,9 @@ class TrailingWhitespaceValidation(Validation):
     def get_message(self, value):
         return 'contains trailing whitespace'
 
-    def validate(self, series: pd.Series):
+    def validate(self, series: pd.Series) -> pd.Series:
         return ~series.str.contains('\s+$')
+
 
 class LeadingWhitespaceValidation(Validation):
     """
@@ -90,7 +120,7 @@ class LeadingWhitespaceValidation(Validation):
     def get_message(self, value):
         return 'contains leading whitespace'
 
-    def validate(self, series: pd.Series):
+    def validate(self, series: pd.Series) -> pd.Series:
         return ~series.str.contains('^\s+')
 
 
@@ -103,9 +133,10 @@ class InListValidation(Validation):
         self.options = options
 
     def get_message(self, value):
-        return 'has a value of "{}" which is not in the list of legal options ("{}")'.format(value, ','.join(self.options))
+        return 'has a value of "{}" which is not in the list of legal options ("{}")'.format(value,
+                                                                                             ','.join(self.options))
 
-    def validate(self, series: pd.Series):
+    def validate(self, series: pd.Series) -> pd.Series:
         return series.isin(self.options)
 
 
@@ -127,6 +158,5 @@ class DateFormatValidation(Validation):
         except:
             return False
 
-    def validate(self, series: pd.Series):
+    def validate(self, series: pd.Series) -> pd.Series:
         return series.apply(self.valid_date)
-
