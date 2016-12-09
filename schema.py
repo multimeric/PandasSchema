@@ -58,11 +58,6 @@ class Schema:
 
                 column_pairs.append((df[column.name], column))
 
-        # Annotate the origin row number onto the data frame (original row number before we extract the rows failing
-        # the validation)
-        rownum = 'pandas_schema_rownum'
-        df[rownum] = df.index
-
         # Iterate over each pair of schema columns and data frame series and run validations
         for series, column in column_pairs:
             errors += column.validate(series)

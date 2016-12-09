@@ -2,7 +2,7 @@ import typing
 from validation import Validation
 import pandas as pd
 from validation_error import ValidationError
-import numpy as np
+
 
 class Column:
     def __init__(self, name: str, validations: typing.Iterable[Validation] = [], allow_empty=False):
@@ -13,23 +13,27 @@ class Column:
     def validate(self, series: pd.Series) -> typing.List[ValidationError]:
         errors = []
 
+        # Apply each validation one at a time
         for validation in self.validations:
 
             # Calculate which columns are valid based on the current validation, skipping empty entries
+            simple_validation = ~validation.validate(series)
             if self.allow_empty:
-                validated = series.isnull | validation.validate(series)
+                # Failing results are those that are not empty, and fail the validation
+                validated = (series.str.len() > 0) & simple_validation
             else:
-                validated = validation.validate(series)
+                validated = simple_validation
 
-            # Cut down the original series using that
-            indicies = np.extract(validated, series)
+            # Cut down the original series to only ones that failed the validation
+            indices = series.index[validated]
 
-            for row in indicies.itertuples():
+            # Use these indices to find the failing items. Also print the index which is probably a row number
+            for i in indices:
+                element = series[i]
                 errors.append(ValidationError(
-                    validation.get_message(getattr(row, self.name)),
-                    getattr(row, rownum),
-                    self.name
+                    message=validation.get_message(element),
+                    row=i,
+                    column=series.name
                 ))
-
 
         return errors

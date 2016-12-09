@@ -1,6 +1,6 @@
 import json
 
-from ..validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, CanCallValidation, \
+from validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, CanCallValidation, \
     DateFormatValidation, InListValidation, MatchesRegexValidation, CanConvertValidation, Validation
 import unittest
 import pandas as pd
