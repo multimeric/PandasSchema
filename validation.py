@@ -34,7 +34,7 @@ class ElementValidation(BaseValidation):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_message(self, value: any) -> str:
+    def get_message(self) -> str:
         """
         Create a message to be displayed whenever this validation fails
         :param value: The value of the failing object (Series, or single value)
@@ -68,7 +68,8 @@ class ElementValidation(BaseValidation):
         for i in indices:
             element = series[i]
             errors.append(ValidationError(
-                message=self.get_message(element),
+                message=self.get_message(),
+                value=element,
                 row=i,
                 column=series.name
             ))
@@ -92,7 +93,7 @@ class CustomValidation(ElementValidation):
         self._validation = validation
         super().__init__()
 
-    def get_message(self, value):
+    def get_message(self):
         return self._message
 
     def validate(self, series: pd.Series) -> pd.Series:
@@ -108,8 +109,8 @@ class InRangeValidation(ElementValidation):
         self.min = min
         self.max = max
 
-    def get_message(self, value: any):
-        return '{} was not in the range [{}, {})'.format(value, self.min, self.max)
+    def get_message(self):
+        return 'was not in the range [{}, {})'.format(self.min, self.max)
 
     def validate(self, series: pd.Series) -> pd.Series:
         series = pd.to_numeric(series)
@@ -145,7 +146,7 @@ class CanCallValidation(ElementValidation):
             raise PanSchArgumentError('The object "{}" passed to CanCallValidation is not callable!'.format(type))
         super().__init__()
 
-    def get_message(self, value):
+    def get_message(self):
         return 'raised an exception when the callable {} was called on it'.format(self.callable)
 
     def can_call(self, var):
@@ -175,11 +176,11 @@ class CanConvertValidation(CanCallValidation):
         else:
             raise PanSchArgumentError('{} is not a valid type'.format(_type))
 
-    def get_message(self, value):
+    def get_message(self):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
-class MatchesRegexValidation(BaseValidation):
+class MatchesRegexValidation(ElementValidation):
     """
     Validates that a regular expression can match somewhere in each element in this column
     """
@@ -191,8 +192,8 @@ class MatchesRegexValidation(BaseValidation):
 
         self.pattern = regex
 
-    def get_message(self, value):
-        return 'does not match the regex {}'.format(self.pattern)
+    def get_message(self):
+        return 'does not match the regex "{}"'.format(self.pattern)
 
     def validate(self, series: pd.Series) -> pd.Series:
         return series.astype(str).str.contains(self.pattern)
@@ -206,7 +207,7 @@ class TrailingWhitespaceValidation(ElementValidation):
     def __init__(self):
         pass
 
-    def get_message(self, value):
+    def get_message(self):
         return 'contains trailing whitespace'
 
     def validate(self, series: pd.Series) -> pd.Series:
@@ -221,7 +222,7 @@ class LeadingWhitespaceValidation(ElementValidation):
     def __init__(self):
         pass
 
-    def get_message(self, value):
+    def get_message(self):
         return 'contains leading whitespace'
 
     def validate(self, series: pd.Series) -> pd.Series:
@@ -236,9 +237,8 @@ class InListValidation(ElementValidation):
     def __init__(self, options: typing.Iterable):
         self.options = options
 
-    def get_message(self, value):
-        return 'has a value of "{}" which is not in the list of legal options ("{}")'.format(value,
-                                                                                             ','.join(self.options))
+    def get_message(self):
+        return 'is not in the list of legal options ({})'.format(', '.join(self.options))
 
     def validate(self, series: pd.Series) -> pd.Series:
         return series.isin(self.options)
@@ -252,8 +252,8 @@ class DateFormatValidation(ElementValidation):
     def __init__(self, date_format: str):
         self.date_format = date_format
 
-    def get_message(self, value):
-        return 'has a value of "{}", which does not match the date format string "{}"'.format(value, self.date_format)
+    def get_message(self):
+        return 'does not match the date format string "{}"'.format(self.date_format)
 
     def valid_date(self, val):
         try:

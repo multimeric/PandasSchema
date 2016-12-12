@@ -62,4 +62,4 @@ class Schema:
         for series, column in column_pairs:
             errors += column.validate(series)
 
-        return errors
+        return sorted(errors, key=lambda e: e.row)

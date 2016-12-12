@@ -31,9 +31,9 @@ Now you want to be able to ensure that the data in your CSV is in the correct fo
     ])
 
     test_data = pd.from_csv(StringIO('''
-        Gerald,Hampton,82,Male,2582GABK
-        Yuuwa,Miyake,27,Male,7951WVLW
-        Edyta,Majewska,50,Female,7758NSID
+        Gerald ,Hampton,82,Male,2582GABK
+        Yuuwa,Miyake,270,male,7951WVLW
+        Edyta,Majewska ,50,Female,775ANSID
     '''))
 
     schema.validate()
