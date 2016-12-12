@@ -2,7 +2,6 @@ import typing
 import validation
 import pandas as pd
 from validation_error import ValidationError
-import itertools
 
 
 class Column:

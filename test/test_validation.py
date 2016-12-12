@@ -6,7 +6,6 @@ from validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation
 import unittest
 import pandas as pd
 import numpy as np
-import typing
 import re
 
 from validation_error import ValidationError

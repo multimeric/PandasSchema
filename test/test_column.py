@@ -1,5 +1,4 @@
 import unittest
-import column
 from column import Column
 from validation import CanConvertValidation, LeadingWhitespaceValidation, TrailingWhitespaceValidation
 import pandas as pd
