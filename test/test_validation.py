@@ -1,9 +1,11 @@
 import json
 
 from validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, CanCallValidation, \
-    DateFormatValidation, InListValidation, MatchesRegexValidation, CanConvertValidation, Validation
+    DateFormatValidation, InListValidation, MatchesRegexValidation, CanConvertValidation, BaseValidation, \
+    InRangeValidation, IsDtypeValidation, CustomValidation
 import unittest
 import pandas as pd
+import numpy as np
 import typing
 import re
 
@@ -18,7 +20,7 @@ class ValidationTestBase(unittest.TestCase):
     def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
 
         # Check that self.validator is correct
-        if not self.validator or not isinstance(self.validator, Validation):
+        if not self.validator or not isinstance(self.validator, BaseValidation):
             raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
 
         # Ensure we're comparing series correctly
@@ -32,50 +34,20 @@ class ValidationTestBase(unittest.TestCase):
             with self.subTest(value=item):
                 self.assertEqual(result, expected_result, msg)
 
-    @staticmethod
-    def assertMatches(list: typing.Iterable, condition: typing.Callable[[object], bool], number: int):
-        """
-        Assert that the condition matches elements in the list, n amount of times
-        :param list: The list whose elements we are testing
-        :param condition: The function to apply to each element to find if it passes
-        :param number: The number of matches we expect
-        """
-        matches = [m for m in list if condition(m)]
-        num_matches = len(matches)
-        if num_matches == number:
-            return True
-        else:
-            raise AssertionError('Expected {} match[es]. Obtained {} matches'.format(number, num_matches))
 
-    def assertValidationError(self, list: typing.List[ValidationError], row: int, column: str, regex: str = '',
-                              number: int = 1):
-        """
-        Assert that a ValidationError with the given row, column, and with a message matching the given regex matches n times
-        :param list: The list to search in
-        :param row: The row number to check
-        :param column: The column name to check
-        :param regex: The pattern to match the message against
-        :param number: The number of matches we expect. Defaults to 1
-        """
+class Custom(ValidationTestBase):
+    """
+    Tests the CustomValidation
+    """
 
-        def match(error: ValidationError):
-            if error.row == row and error.column == column and re.search(regex, error.message):
-                return True
-            else:
-                return False
+    def setUp(self):
+        self.validator = CustomValidation(lambda s: ~s.str.contains('fail'), 'contained the word fail')
 
-        self.assertMatches(list, match, number)
+    def test_valid_inputs(self):
+        self.validate_and_compare(['good', 'success'], True, 'did not accept valid inputs')
 
-    def assertNoValidationError(self, list: typing.List[ValidationError], row: int, column: str, regex: str = ''):
-        """
-        Assert that a ValidationError with the given row, column, and with a message matching the given regex does not exist in the list
-        :param list: The list to search in
-        :param row: The row number to check
-        :param column: The column name to check
-        :param regex: The pattern to match the message against
-        """
-        self.assertValidationError(list, row, column, regex, 0)
-
+    def test_invalid_inputs(self):
+        self.validate_and_compare(['fail', 'failure'], False, 'accepted invalid inputs')
 
 class LeadingWhitespace(ValidationTestBase):
     """
@@ -343,13 +315,14 @@ class StringRegexMatch(ValidationTestBase):
             'accepts strings that do not match the regex'
         )
 
+
 class CompiledRegexMatch(ValidationTestBase):
     """
     Tests the MatchesRegexValidation, using a compiled regex
     """
+
     def setUp(self):
         self.validator = MatchesRegexValidation(re.compile('^.+\.txt$', re.IGNORECASE))
-
 
     def test_valid_strings(self):
         self.validate_and_compare(
@@ -372,3 +345,64 @@ class CompiledRegexMatch(ValidationTestBase):
             False,
             'accepts strings that do not match the regex'
         )
+
+
+class InRange(ValidationTestBase):
+    """
+    Tests the InRangeValidation
+    """
+
+    def setUp(self):
+        self.validator = InRangeValidation(7, 9)
+
+    def test_valid_items(self):
+        self.validate_and_compare(
+            [
+                7,
+                8,
+                7
+            ],
+            True,
+            'does not accept integers in the correct range'
+        )
+
+    def test_invalid_items(self):
+        self.validate_and_compare(
+            [
+                1,
+                2,
+                3
+            ],
+            False,
+            'Incorrectly accepts integers outside of the range'
+        )
+
+
+class Dtype(ValidationTestBase):
+    """
+    Tests the DtypeValidation
+    """
+
+    def setUp(self):
+        self.validator = IsDtypeValidation(np.number)
+
+    def test_valid_items(self):
+        errors = self.validator.get_errors(pd.Series(
+            [
+                1,
+                2,
+                3
+            ]))
+
+        self.assertEqual(len(errors), 0)
+
+    def test_invalid_items(self):
+        errors = self.validator.get_errors(pd.Series(
+            [
+                'a',
+                '',
+                'c'
+            ]))
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(type(errors[0]), ValidationError)

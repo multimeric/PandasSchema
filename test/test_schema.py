@@ -2,15 +2,15 @@ from io import StringIO
 
 from schema import Schema
 import unittest
-from column import Column
+import column
 from validation import LeadingWhitespaceValidation
 import pandas as pd
 
 
 class UnorderedSchema(unittest.TestCase):
     schema = Schema([
-        Column('a'),
-        Column('b', [LeadingWhitespaceValidation()])
+        column.Column('a'),
+        column.Column('b', [LeadingWhitespaceValidation()])
     ], ordered=False)
 
     def test_fields(self):
@@ -60,8 +60,8 @@ b,a
 
 class OrderedSchema(unittest.TestCase):
     schema = Schema([
-        Column('a', [LeadingWhitespaceValidation()]),
-        Column('b')
+        column.Column('a', [LeadingWhitespaceValidation()]),
+        column.Column('b')
     ], ordered=True)
 
     def test_mixed_columns(self):
