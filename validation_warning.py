@@ -1,4 +1,4 @@
-class ValidationError:
+class ValidationWarning:
     """
     Represents a difference between the schema and data frame, found during the validation of the data frame
     """

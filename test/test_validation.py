@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import re
 
-from validation_error import ValidationError
+from validation_warning import ValidationWarning
 
 
 class ValidationTestBase(unittest.TestCase):
@@ -404,4 +404,4 @@ class Dtype(ValidationTestBase):
             ]))
 
         self.assertEqual(len(errors), 1)
-        self.assertEqual(type(errors[0]), ValidationError)
+        self.assertEqual(type(errors[0]), ValidationWarning)

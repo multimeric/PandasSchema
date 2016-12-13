@@ -90,3 +90,8 @@ ENV/
 
 # Custom
 .idea
+
+.doctrees
+
+doc/_*
+doc/Makefile

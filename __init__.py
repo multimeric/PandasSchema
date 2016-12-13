@@ -1,4 +1,4 @@
 from column import Column
-from validation_error import ValidationError
+from validation_warning import ValidationWarning
 from schema import Schema
 import validation

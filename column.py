@@ -1,7 +1,7 @@
 import typing
 import validation
 import pandas as pd
-from validation_error import ValidationError
+from validation_warning import ValidationWarning
 
 
 class Column:
@@ -17,7 +17,7 @@ class Column:
         self.validations = list(validations)
         self.allow_empty = allow_empty
 
-    def validate(self, series: pd.Series) -> typing.List[ValidationError]:
+    def validate(self, series: pd.Series) -> typing.List[ValidationWarning]:
         """
         Creates a list of validation errors using the Validation objects contained in the Column
         :param series: A pandas Series to validate

@@ -2,13 +2,13 @@ import pandas as pd
 import typing
 
 from errors import PanSchInvalidSchemaError
-from validation_error import ValidationError
+from validation_warning import ValidationWarning
 from column import Column
 
 
 class Schema:
     """
-    A schema used to validate a pandas data frame against
+    A schema that defines the columns required in the target DataFrame
     """
 
     def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
@@ -29,14 +29,19 @@ class Schema:
         self.columns = list(columns)
         self.ordered = ordered
 
-    def validate(self, df: pd.DataFrame) -> typing.List[ValidationError]:
+    def validate(self, df: pd.DataFrame) -> typing.List[ValidationWarning]:
+        """
+        Runs a full validation of the target DataFrame using the internal columns list
+        :param df: A pandas DataFrame to validate
+        :return: A list of ValidationWarning objects that list the ways in which the DataFrame was invalid
+        """
         errors = []
 
         # It's an error if the number of columns in the schema and data frame are different
         df_cols = len(df.columns)
         schema_cols = len(self.columns)
         if df_cols != schema_cols:
-            errors.append(ValidationError(
+            errors.append(ValidationWarning(
                 'Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(schema_cols,
                                                                                                        df_cols)))
             return errors
@@ -52,7 +57,7 @@ class Schema:
 
                 # Throw an error if the schema column isn't in the data frame
                 if column.name not in df:
-                    errors.append(ValidationError(
+                    errors.append(ValidationWarning(
                         'The column {} exists in the schema but not in the data frame'.format(column.name)))
                     return errors
 

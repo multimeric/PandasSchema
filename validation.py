@@ -6,7 +6,7 @@ import numpy as np
 import typing
 
 import column
-from validation_error import ValidationError
+from validation_warning import ValidationWarning
 from errors import PanSchArgumentError
 
 
@@ -17,7 +17,7 @@ class BaseValidation:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_errors(self, series: pd.Series, column: 'column.Column') -> typing.Iterable[ValidationError]:
+    def get_errors(self, series: pd.Series, column: 'column.Column') -> typing.Iterable[ValidationWarning]:
         """
         Return a list of errors in the given series
         :param series:
@@ -67,7 +67,7 @@ class ElementValidation(BaseValidation):
         # Use these indices to find the failing items. Also print the index which is probably a row number
         for i in indices:
             element = series[i]
-            errors.append(ValidationError(
+            errors.append(ValidationWarning(
                 message=self.get_message(),
                 value=element,
                 row=i,
@@ -127,7 +127,7 @@ class IsDtypeValidation(BaseValidation):
 
     def get_errors(self, series: pd.Series, column: 'column.Column' = None):
         if not np.issubdtype(series.dtype, self.dtype):
-            return [ValidationError(
+            return [ValidationWarning(
                 'The column has a dtype of {} which is not a subclass of the required type {}'.format(series.dtype,
                                                                                                       self.dtype))]
         else:
