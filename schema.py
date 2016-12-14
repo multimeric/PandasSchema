@@ -13,7 +13,6 @@ class Schema:
 
     def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
         """
-        Creates a new pandas schema
         :param columns: A list of column objects
         :param ordered: True if the data frame must be in the same order as the schema. Defaults to False
         """
@@ -32,6 +31,7 @@ class Schema:
     def validate(self, df: pd.DataFrame) -> typing.List[ValidationWarning]:
         """
         Runs a full validation of the target DataFrame using the internal columns list
+
         :param df: A pandas DataFrame to validate
         :return: A list of ValidationWarning objects that list the ways in which the DataFrame was invalid
         """

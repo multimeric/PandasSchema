@@ -84,10 +84,13 @@ class CustomValidation(ElementValidation):
 
     def __init__(self, validation: typing.Callable[[pd.Series], pd.Series], message: str):
         """
-        Creates a new validation object
-        :param message: The error message to provide to the user if this validation fails
-        :param validation: A function that takes a pandas series and returns a boolean series, where the cell is equal to
-        True if the object passed validation, and False if it failed
+        :param message: The error message to provide to the user if this validation fails. The row and column and
+            failing value will automatically be prepended to this message, so you only have to provide a message that
+            describes what went wrong, for example 'failed my validation' will become
+
+            {row: 1, column: "Column Name"}: "Value" failed my validation
+        :param validation: A function that takes a pandas Series and returns a boolean Series, where each cell is equal
+            to True if the object passed validation, and False if it failed
         """
         self._message = message
         self._validation = validation
@@ -105,7 +108,11 @@ class InRangeValidation(ElementValidation):
     Checks that each element in the series is within a given numerical range
     """
 
-    def __init__(self, min=-math.inf, max=math.inf):
+    def __init__(self, min: float = -math.inf, max: float = math.inf):
+        """
+        :param min: The minimum (inclusive) value to accept
+        :param max: The maximum (exclusive) value to accept
+        """
         self.min = min
         self.max = max
 
@@ -123,6 +130,9 @@ class IsDtypeValidation(BaseValidation):
     """
 
     def __init__(self, dtype: np.dtype):
+        """
+        :param dtype: The numpy dtype to check the column against
+        """
         self.dtype = dtype
 
     def get_errors(self, series: pd.Series, column: 'column.Column' = None):
@@ -139,7 +149,11 @@ class CanCallValidation(ElementValidation):
     Validates if a given function can be called on each element in a column without raising an exception
     """
 
-    def __init__(self, func):
+    def __init__(self, func: typing.Callable):
+        """
+        :param func: A python function that will be called with the value of each cell in the DataFrame. If this
+            function throws an error, this cell is considered to have failed the validation. Otherwise it has passed.
+        """
         if callable(type):
             self.callable = func
         else:
@@ -170,7 +184,11 @@ class CanConvertValidation(CanCallValidation):
     However this class overrides the error messages to make them more directed towards types
     """
 
-    def __init__(self, _type):
+    def __init__(self, _type: type):
+        """
+        :param _type: Any python type. Its constructor will be called with the value of the individual cell as its
+            only argument. If it throws an exception, the value is considered to fail the validation, otherwise it has passed
+        """
         if isinstance(_type, type):
             super(CanConvertValidation, self).__init__(_type)
         else:
@@ -235,6 +253,10 @@ class InListValidation(ElementValidation):
     """
 
     def __init__(self, options: typing.Iterable):
+        """
+        :param options: A list of values to check. If the value of a cell is in this list, it is considered to pass the
+            validation
+        """
         self.options = options
 
     def get_message(self):
@@ -250,6 +272,11 @@ class DateFormatValidation(ElementValidation):
     """
 
     def __init__(self, date_format: str):
+        """
+        :param date_format: The date format string to validate the column against. Refer to the date format code
+            documentation at https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior for a full
+            list of format codes
+        """
         self.date_format = date_format
 
     def get_message(self):

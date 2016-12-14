@@ -36,7 +36,9 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
-    'sphinxcontrib.restbuilder'
+    'sphinxcontrib.restbuilder',
+    'sphinx.ext.autosectionlabel'
+    #'sphinx_autodoc_annotation'
 ]
 
 autoclass_content = 'both'
