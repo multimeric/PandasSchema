@@ -28,7 +28,7 @@ class BuildReadme(distutils.cmd.Command):
     def finalize_options(self): pass
 
     def run(self):
-        command = ['sphinx-build', '-b', 'rst', 'doc', '.']
+        command = ['sphinx-build', '-b', 'rst', 'doc/readme', str(here)]
         self.announce(
             'Running command: {}'.format(command),
             level=distutils.log.INFO
@@ -51,17 +51,12 @@ class BuildHtmlDocs(distutils.cmd.Command):
             assert os.path.isdir(self.dir), ('Specified directory "{}" does not exist'.format(self.dir))
 
     def run(self):
-        commands = [
-            ['sphinx-build', '-b', 'html', 'doc', self.dir],
-            ['mv', self.dir + '/README.html', self.dir + '/index.html']
-        ]
-
-        for command in commands:
-            self.announce(
-                'Running command: {}'.format(command),
-                level=distutils.log.INFO
-            )
-            subprocess.check_call(command, cwd=str(here))
+        command = ['sphinx-build', '-b', 'html', 'doc/site', self.dir]
+        self.announce(
+            'Running command: {}'.format(command),
+            level=distutils.log.INFO
+        )
+        subprocess.check_call(command, cwd=str(here))
 
 
 setup(
