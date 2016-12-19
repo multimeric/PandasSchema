@@ -3,7 +3,8 @@ Separated Value files). It uses the incredibly powerful data analysis tool panda
 
 For example, say your code expects a CSV that looks a bit like this:
 
-..
+::
+
     Given Name,Family Name,Age,Sex,Customer ID
     Gerald,Hampton,82,Male,2582GABK
     Yuuwa,Miyake,27,Male,7951WVLW
