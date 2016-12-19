@@ -2,9 +2,10 @@
 PandasSchema
 ************
 
-For the full documentation, refer to the Github Pages Website:
-`https://tmiguelt.github.io/PandasSchema/
-<https://tmiguelt.github.io/PandasSchema/>`_
+For the full documentation, refer to the `Github Pages Website
+<https://tmiguelt.github.io/PandasSchema/>`_.
+
+======================================================================
 
 PandasSchema is a module for validating tabulated data, such as CSVs
 (Comma Separated Value files), and TSVs (Tab Separated Value files).
