@@ -129,7 +129,7 @@ Separated Value files). It uses the incredibly powerful data analysis tool panda
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>func</strong> &#8211; A python function that will be called with the value of each cell in the DataFrame. If this
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>func</strong> -- A python function that will be called with the value of each cell in the DataFrame. If this
 function throws an error, this cell is considered to have failed the validation. Otherwise it has passed.</td>
 </tr>
 </tbody>
@@ -144,7 +144,7 @@ function throws an error, this cell is considered to have failed the validation.
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_type</strong> &#8211; Any python type. Its constructor will be called with the value of the individual cell as its
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_type</strong> -- Any python type. Its constructor will be called with the value of the individual cell as its
 only argument. If it throws an exception, the value is considered to fail the validation, otherwise it has passed</td>
 </tr>
 </tbody>
@@ -159,7 +159,7 @@ only argument. If it throws an exception, the value is considered to fail the va
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>date_format</strong> &#8211; The date format string to validate the column against. Refer to the date format code
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>date_format</strong> -- The date format string to validate the column against. Refer to the date format code
 documentation at <a class="reference external" href="https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior">https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior</a> for a full
 list of format codes</td>
 </tr>
@@ -175,7 +175,7 @@ list of format codes</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>options</strong> &#8211; A list of values to check. If the value of a cell is in this list, it is considered to pass the
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>options</strong> -- A list of values to check. If the value of a cell is in this list, it is considered to pass the
 validation</td>
 </tr>
 </tbody>
@@ -191,8 +191,8 @@ validation</td>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>min</strong> &#8211; The minimum (inclusive) value to accept</li>
-<li><strong>max</strong> &#8211; The maximum (exclusive) value to accept</li>
+<li><strong>min</strong> -- The minimum (inclusive) value to accept</li>
+<li><strong>max</strong> -- The maximum (exclusive) value to accept</li>
 </ul>
 </td>
 </tr>
@@ -208,7 +208,7 @@ validation</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dtype</strong> &#8211; The numpy dtype to check the column against</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dtype</strong> -- The numpy dtype to check the column against</td>
 </tr>
 </tbody>
 </table>
@@ -228,7 +228,7 @@ validation</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>regex</strong> &#8211; A regular expression object, created using re.compile or similar</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>regex</strong> -- A regular expression object, created using re.compile or similar</td>
 </tr>
 </tbody>
 </table>
@@ -246,7 +246,7 @@ validation</td>
 <div class="section" id="simple-validators">
 <h3><a class="toc-backref" href="#id6">Simple Validators</a><a class="headerlink" href="#simple-validators" title="Permalink to this headline">¶</a></h3>
 <p>The easiest way to add your own Validator is to use the CustomValidation class. For example if you wanted a validation
-that checked if each cell in a column contained the word &#8216;fail&#8217;, and failed if it did, you&#8217;d do the following:</p>
+that checked if each cell in a column contained the word 'fail', and failed if it did, you'd do the following:</p>
 <div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="n">CustomValidation</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="o">~</span><span class="n">s</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;fail&#39;</span><span class="p">),</span> <span class="s1">&#39;contained the word fail&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -260,12 +260,12 @@ that checked if each cell in a column contained the word &#8216;fail&#8217;, and
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>message</strong> &#8211; <p>The error message to provide to the user if this validation fails. The row and column and
+<li><strong>message</strong> -- <p>The error message to provide to the user if this validation fails. The row and column and
 failing value will automatically be prepended to this message, so you only have to provide a message that
-describes what went wrong, for example &#8216;failed my validation&#8217; will become</p>
-<p>{row: 1, column: &#8220;Column Name&#8221;}: &#8220;Value&#8221; failed my validation</p>
+describes what went wrong, for example 'failed my validation' will become</p>
+<p>{row: 1, column: &quot;Column Name&quot;}: &quot;Value&quot; failed my validation</p>
 </li>
-<li><strong>validation</strong> &#8211; A function that takes a pandas Series and returns a boolean Series, where each cell is equal
+<li><strong>validation</strong> -- A function that takes a pandas Series and returns a boolean Series, where each cell is equal
 to True if the object passed validation, and False if it failed</li>
 </ul>
 </td>
@@ -277,7 +277,7 @@ to True if the object passed validation, and False if it failed</li>
 </div>
 <div class="section" id="inheriting-from-elementvalidation">
 <h3><a class="toc-backref" href="#id7">Inheriting From ElementValidation</a><a class="headerlink" href="#inheriting-from-elementvalidation" title="Permalink to this headline">¶</a></h3>
-<p>If you want to implement more complicated logic that doesn&#8217;t fit in a lambda, or you want to parameterize your Validator
+<p>If you want to implement more complicated logic that doesn't fit in a lambda, or you want to parameterize your Validator
 and re-use it in different parts of your application, you can instead make a class that inherits from ElementValidation.</p>
 <p>For example, the (simplified) implementation of the MatchesRegexValidation is presented below. All you need to do is write
 an <code class="code docutils literal"><span class="pre">__init__</span></code>, <code class="code docutils literal"><span class="pre">get_message</span></code> and <code class="code docutils literal"><span class="pre">validate</span></code> function with the same signatures as in this example, and you should be
@@ -301,7 +301,7 @@ able to use your validation as though it were a built-in Validation.</p>
 </div>
 <div class="section" id="development">
 <h2><a class="toc-backref" href="#id8">Development</a><a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
-<p>To install PandasSchema&#8217;s development requirements, run</p>
+<p>To install PandasSchema's development requirements, run</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
@@ -309,7 +309,7 @@ able to use your validation as though it were a built-in Validation.</p>
 <ul class="simple">
 <li><cite>./setup.py test</cite>: runs the tests</li>
 <li><cite>./setup.py build_readme</cite>: rebuilds the <cite>README.rst</cite> from <cite>doc/readme/README.rst</cite></li>
-<li><cite>./setup.py build_site &#8211;dir=&lt;dir&gt;</cite>: builds the documentation website from <cite>doc/site/index.rst</cite> into <cite>&lt;dir&gt;</cite></li>
+<li><cite>./setup.py build_site --dir=&lt;dir&gt;</cite>: builds the documentation website from <cite>doc/site/index.rst</cite> into <cite>&lt;dir&gt;</cite></li>
 </ul>
 </div>
 <div class="section" id="api">
@@ -326,8 +326,8 @@ able to use your validation as though it were a built-in Validation.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>columns</strong> &#8211; A list of column objects</li>
-<li><strong>ordered</strong> &#8211; True if the data frame must be in the same order as the schema. Defaults to False</li>
+<li><strong>columns</strong> -- A list of column objects</li>
+<li><strong>ordered</strong> -- True if the data frame must be in the same order as the schema. Defaults to False</li>
 </ul>
 </td>
 </tr>
@@ -341,7 +341,7 @@ able to use your validation as though it were a built-in Validation.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>df</strong> &#8211; A pandas DataFrame to validate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>df</strong> -- A pandas DataFrame to validate</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of ValidationWarning objects that list the ways in which the DataFrame was invalid</td>
 </tr>
@@ -363,9 +363,9 @@ able to use your validation as though it were a built-in Validation.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>name</strong> &#8211; The column header that defines this column. This must be identical to the header used in the CSV/Data Frame you are validating.</li>
-<li><strong>validations</strong> &#8211; An iterable of objects implementing BaseValidation that will generate ValidationErrors</li>
-<li><strong>allow_empty</strong> &#8211; True if an empty column is considered valid. False if we leave that logic up to the Validation</li>
+<li><strong>name</strong> -- The column header that defines this column. This must be identical to the header used in the CSV/Data Frame you are validating.</li>
+<li><strong>validations</strong> -- An iterable of objects implementing BaseValidation that will generate ValidationErrors</li>
+<li><strong>allow_empty</strong> -- True if an empty column is considered valid. False if we leave that logic up to the Validation</li>
 </ul>
 </td>
 </tr>
@@ -379,7 +379,7 @@ able to use your validation as though it were a built-in Validation.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>series</strong> &#8211; A pandas Series to validate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>series</strong> -- A pandas Series to validate</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An iterable of ValidationError instances generated by the validation</td>
 </tr>
