@@ -121,7 +121,7 @@
         <span class="k">return</span> <span class="n">errors</span>
 
 
-<div class="viewcode-block" id="CustomValidation"><a class="viewcode-back" href="../README.html#validation.CustomValidation">[docs]</a><span class="k">class</span> <span class="nc">CustomValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="CustomValidation"><a class="viewcode-back" href="../index.html#validation.CustomValidation">[docs]</a><span class="k">class</span> <span class="nc">CustomValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validates using a user-provided function and message.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -147,7 +147,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validation</span><span class="p">(</span><span class="n">series</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="InRangeValidation"><a class="viewcode-back" href="../README.html#validation.InRangeValidation">[docs]</a><span class="k">class</span> <span class="nc">InRangeValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="InRangeValidation"><a class="viewcode-back" href="../index.html#validation.InRangeValidation">[docs]</a><span class="k">class</span> <span class="nc">InRangeValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that each element in the series is within a given numerical range</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -168,7 +168,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">series</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">series</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="IsDtypeValidation"><a class="viewcode-back" href="../README.html#validation.IsDtypeValidation">[docs]</a><span class="k">class</span> <span class="nc">IsDtypeValidation</span><span class="p">(</span><span class="n">BaseValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="IsDtypeValidation"><a class="viewcode-back" href="../index.html#validation.IsDtypeValidation">[docs]</a><span class="k">class</span> <span class="nc">IsDtypeValidation</span><span class="p">(</span><span class="n">BaseValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that a series has a certain numpy dtype</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -188,7 +188,7 @@
             <span class="k">return</span> <span class="p">[]</span></div>
 
 
-<div class="viewcode-block" id="CanCallValidation"><a class="viewcode-back" href="../README.html#validation.CanCallValidation">[docs]</a><span class="k">class</span> <span class="nc">CanCallValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="CanCallValidation"><a class="viewcode-back" href="../index.html#validation.CanCallValidation">[docs]</a><span class="k">class</span> <span class="nc">CanCallValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validates if a given function can be called on each element in a column without raising an exception</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -218,7 +218,7 @@
         <span class="k">return</span> <span class="n">series</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">can_call</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="CanConvertValidation"><a class="viewcode-back" href="../README.html#validation.CanConvertValidation">[docs]</a><span class="k">class</span> <span class="nc">CanConvertValidation</span><span class="p">(</span><span class="n">CanCallValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="CanConvertValidation"><a class="viewcode-back" href="../index.html#validation.CanConvertValidation">[docs]</a><span class="k">class</span> <span class="nc">CanConvertValidation</span><span class="p">(</span><span class="n">CanCallValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks if each element in a column can be converted to a Python object type</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -242,7 +242,7 @@
         <span class="k">return</span> <span class="s1">&#39;cannot be converted to type </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">callable</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MatchesRegexValidation"><a class="viewcode-back" href="../README.html#validation.MatchesRegexValidation">[docs]</a><span class="k">class</span> <span class="nc">MatchesRegexValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="MatchesRegexValidation"><a class="viewcode-back" href="../index.html#validation.MatchesRegexValidation">[docs]</a><span class="k">class</span> <span class="nc">MatchesRegexValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Validates that a regular expression can match somewhere in each element in this column</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -261,7 +261,7 @@
         <span class="k">return</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="TrailingWhitespaceValidation"><a class="viewcode-back" href="../README.html#validation.TrailingWhitespaceValidation">[docs]</a><span class="k">class</span> <span class="nc">TrailingWhitespaceValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="TrailingWhitespaceValidation"><a class="viewcode-back" href="../index.html#validation.TrailingWhitespaceValidation">[docs]</a><span class="k">class</span> <span class="nc">TrailingWhitespaceValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that there is no trailing whitespace in this column</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -276,7 +276,7 @@
         <span class="k">return</span> <span class="o">~</span><span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;\s+$&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="LeadingWhitespaceValidation"><a class="viewcode-back" href="../README.html#validation.LeadingWhitespaceValidation">[docs]</a><span class="k">class</span> <span class="nc">LeadingWhitespaceValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="LeadingWhitespaceValidation"><a class="viewcode-back" href="../index.html#validation.LeadingWhitespaceValidation">[docs]</a><span class="k">class</span> <span class="nc">LeadingWhitespaceValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that there is no trailing whitespace in this column</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -291,7 +291,7 @@
         <span class="k">return</span> <span class="o">~</span><span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;^\s+&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="InListValidation"><a class="viewcode-back" href="../README.html#validation.InListValidation">[docs]</a><span class="k">class</span> <span class="nc">InListValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="InListValidation"><a class="viewcode-back" href="../index.html#validation.InListValidation">[docs]</a><span class="k">class</span> <span class="nc">InListValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that each element in this column is contained within a list of possibilities</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -310,7 +310,7 @@
         <span class="k">return</span> <span class="n">series</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="DateFormatValidation"><a class="viewcode-back" href="../README.html#validation.DateFormatValidation">[docs]</a><span class="k">class</span> <span class="nc">DateFormatValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
+<div class="viewcode-block" id="DateFormatValidation"><a class="viewcode-back" href="../index.html#validation.DateFormatValidation">[docs]</a><span class="k">class</span> <span class="nc">DateFormatValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks that each element in this column is a valid date according to a provided format string</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -344,7 +344,7 @@
         <div class="sphinxsidebarwrapper"><div class="relations">
 <h3>Related Topics</h3>
 <ul>
-  <li><a href="../README.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="index.html">Module code</a><ul>
   </ul></li>
   </ul></li>
@@ -368,7 +368,7 @@
       &copy;2016, Michael Milton.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
       
     </div>

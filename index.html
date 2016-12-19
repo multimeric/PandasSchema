@@ -55,10 +55,11 @@
 <li><a class="reference internal" href="#inheriting-from-elementvalidation" id="id7">Inheriting From ElementValidation</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#api" id="id8">API</a><ul>
-<li><a class="reference internal" href="#schema" id="id9">Schema</a></li>
-<li><a class="reference internal" href="#column" id="id10">Column</a></li>
-<li><a class="reference internal" href="#module-validation_warning" id="id11">Validation_Warning</a></li>
+<li><a class="reference internal" href="#development" id="id8">Development</a></li>
+<li><a class="reference internal" href="#api" id="id9">API</a><ul>
+<li><a class="reference internal" href="#schema" id="id10">Schema</a></li>
+<li><a class="reference internal" href="#column" id="id11">Column</a></li>
+<li><a class="reference internal" href="#module-validation_warning" id="id12">Validation_Warning</a></li>
 </ul>
 </li>
 </ul>
@@ -71,17 +72,17 @@
 Separated Value files). It uses the incredibly powerful data analysis tool pandas to do so quickly and efficiently.</p>
 <p>For example, say your code expects a CSV that looks a bit like this:</p>
 <p>Now you want to be able to ensure that the data in your CSV is in the correct format:</p>
-<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
-<span class="kn">from</span> <span class="nn">pandas_schema</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Schema</span>
-<span class="kn">from</span> <span class="nn">pandas_schema.validation</span> <span class="k">import</span> <span class="n">LeadingWhitespaceValidation</span><span class="p">,</span> <span class="n">TrailingWhitespaceValidation</span><span class="p">,</span> <span class="n">CanConvertValidation</span><span class="p">,</span> <span class="n">MatchesRegexValidation</span><span class="p">,</span> <span class="n">InRangeValidation</span><span class="p">,</span> <span class="n">InListValidation</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">pandas_schema</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Schema</span>
+<span class="kn">from</span> <span class="nn">pandas_schema.validation</span> <span class="kn">import</span> <span class="n">LeadingWhitespaceValidation</span><span class="p">,</span> <span class="n">TrailingWhitespaceValidation</span><span class="p">,</span> <span class="n">CanConvertValidation</span><span class="p">,</span> <span class="n">MatchesRegexValidation</span><span class="p">,</span> <span class="n">InRangeValidation</span><span class="p">,</span> <span class="n">InListValidation</span>
 
 <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">([</span>
     <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Given Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">LeadingWhitespaceValidation</span><span class="p">(),</span> <span class="n">TrailingWhitespaceValidation</span><span class="p">()]),</span>
     <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Family Name&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">LeadingWhitespaceValidation</span><span class="p">(),</span> <span class="n">TrailingWhitespaceValidation</span><span class="p">()]),</span>
     <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Age&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">InRangeValidation</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)]),</span>
     <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Sex&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">InListValidation</span><span class="p">([</span><span class="s1">&#39;Male&#39;</span><span class="p">,</span> <span class="s1">&#39;Female&#39;</span><span class="p">,</span> <span class="s1">&#39;Other&#39;</span><span class="p">])]),</span>
-    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Customer ID&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">MatchesRegexValidation</span><span class="p">(</span><span class="s1">r&#39;\d</span><span class="si">{4}</span><span class="s1">[A-Z]</span><span class="si">{4}</span><span class="s1">&#39;</span><span class="p">)])</span>
+    <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;Customer ID&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">MatchesRegexValidation</span><span class="p">(</span><span class="s1">r&#39;\d{4}[A-Z]{4}&#39;</span><span class="p">)])</span>
 <span class="p">])</span>
 
 <span class="n">test_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">StringIO</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;Given Name,Family Name,Age,Sex,Customer ID</span>
@@ -93,7 +94,7 @@ Separated Value files). It uses the incredibly powerful data analysis tool panda
 <span class="n">errors</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>PandasSchema would then output</p>
@@ -292,10 +293,22 @@ able to use your validation as though it were a built-in Validation.</p>
 </div>
 </div>
 </div>
+<div class="section" id="development">
+<h2><a class="toc-backref" href="#id8">Development</a><a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
+<p>To install PandasSchema&#8217;s development requirements, run</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>The setup.py can be run as an executable, and it provides the following extra commands:
+* <cite>./setup.py test</cite>: runs the tests
+* <cite>./setup.py build_readme</cite>: rebuilds the <cite>README.rst</cite> from <cite>doc/readme/README.rst</cite>
+* <cite>./setup.py build_site &lt;dir&gt;</cite>: builds the documentation website from <cite>doc/site/index.rst</cite> into <cite>&lt;dir&gt;</cite></p>
+</div>
 <div class="section" id="api">
-<h2><a class="toc-backref" href="#id8">API</a><a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<h2><a class="toc-backref" href="#id9">API</a><a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<p>The public classes not documented above are shown here.</p>
 <div class="section" id="schema">
-<h3><a class="toc-backref" href="#id9">Schema</a><a class="headerlink" href="#schema" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id10">Schema</a><a class="headerlink" href="#schema" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="schema.Schema">
 <em class="property">class </em><code class="descclassname">schema.</code><code class="descname">Schema</code><span class="sig-paren">(</span><em>columns: typing.Iterable[column.Column], ordered: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schema.html#Schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#schema.Schema" title="Permalink to this definition">¶</a></dt>
@@ -332,7 +345,7 @@ able to use your validation as though it were a built-in Validation.</p>
 
 </div>
 <div class="section" id="column">
-<h3><a class="toc-backref" href="#id10">Column</a><a class="headerlink" href="#column" title="Permalink to this headline">¶</a></h3>
+<h3><a class="toc-backref" href="#id11">Column</a><a class="headerlink" href="#column" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="column.Column">
 <em class="property">class </em><code class="descclassname">column.</code><code class="descname">Column</code><span class="sig-paren">(</span><em>name: str</em>, <em>validations: typing.Iterable[typing.validation.BaseValidation] = []</em>, <em>allow_empty=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/column.html#Column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#column.Column" title="Permalink to this definition">¶</a></dt>
@@ -370,7 +383,7 @@ able to use your validation as though it were a built-in Validation.</p>
 
 </div>
 <div class="section" id="module-validation_warning">
-<span id="validation-warning"></span><h3><a class="toc-backref" href="#id11">Validation_Warning</a><a class="headerlink" href="#module-validation_warning" title="Permalink to this headline">¶</a></h3>
+<span id="validation-warning"></span><h3><a class="toc-backref" href="#id12">Validation_Warning</a><a class="headerlink" href="#module-validation_warning" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="validation_warning.ValidationWarning">
 <em class="property">class </em><code class="descclassname">validation_warning.</code><code class="descname">ValidationWarning</code><span class="sig-paren">(</span><em>message: str</em>, <em>value: str = None</em>, <em>row: int = None</em>, <em>column: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/validation_warning.html#ValidationWarning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#validation_warning.ValidationWarning" title="Permalink to this definition">¶</a></dt>
@@ -422,6 +435,7 @@ able to use your validation as though it were a built-in Validation.</p>
 <li><a class="reference internal" href="#inheriting-from-elementvalidation">Inheriting From ElementValidation</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#development">Development</a></li>
 <li><a class="reference internal" href="#api">API</a><ul>
 <li><a class="reference internal" href="#schema">Schema</a></li>
 <li><a class="reference internal" href="#column">Column</a></li>
@@ -441,7 +455,7 @@ able to use your validation as though it were a built-in Validation.</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/README.rst.txt"
+      <li><a href="_sources/index.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -463,11 +477,11 @@ able to use your validation as though it were a built-in Validation.</p>
       &copy;2016, Michael Milton.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
       
       |
-      <a href="_sources/README.rst.txt"
+      <a href="_sources/index.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 
