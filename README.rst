@@ -12,7 +12,7 @@ For example, say your code expects a CSV that looks a bit like this:
 Now you want to be able to ensure that the data in your CSV is in the
 correct format:
 
-.. highlight:: python
+.. code:: python
 
    import pandas as pd
    from io import StringIO
