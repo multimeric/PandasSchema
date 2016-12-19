@@ -71,6 +71,12 @@
 <p>PandasSchema is a module for validating tabulated data, such as CSVs (Comma Separated Value files), and TSVs (Tab
 Separated Value files). It uses the incredibly powerful data analysis tool pandas to do so quickly and efficiently.</p>
 <p>For example, say your code expects a CSV that looks a bit like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Given</span> <span class="n">Name</span><span class="p">,</span><span class="n">Family</span> <span class="n">Name</span><span class="p">,</span><span class="n">Age</span><span class="p">,</span><span class="n">Sex</span><span class="p">,</span><span class="n">Customer</span> <span class="n">ID</span>
+<span class="n">Gerald</span><span class="p">,</span><span class="n">Hampton</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="n">Male</span><span class="p">,</span><span class="mi">2582</span><span class="n">GABK</span>
+<span class="n">Yuuwa</span><span class="p">,</span><span class="n">Miyake</span><span class="p">,</span><span class="mi">27</span><span class="p">,</span><span class="n">Male</span><span class="p">,</span><span class="mi">7951</span><span class="n">WVLW</span>
+<span class="n">Edyta</span><span class="p">,</span><span class="n">Majewska</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="n">Female</span><span class="p">,</span><span class="mi">7758</span><span class="n">NSID</span>
+</pre></div>
+</div>
 <p>Now you want to be able to ensure that the data in your CSV is in the correct format:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
@@ -299,10 +305,12 @@ able to use your validation as though it were a built-in Validation.</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
-<p>The setup.py can be run as an executable, and it provides the following extra commands:
-* <cite>./setup.py test</cite>: runs the tests
-* <cite>./setup.py build_readme</cite>: rebuilds the <cite>README.rst</cite> from <cite>doc/readme/README.rst</cite>
-* <cite>./setup.py build_site &lt;dir&gt;</cite>: builds the documentation website from <cite>doc/site/index.rst</cite> into <cite>&lt;dir&gt;</cite></p>
+<p>The setup.py can be run as an executable, and it provides the following extra commands:</p>
+<ul class="simple">
+<li><cite>./setup.py test</cite>: runs the tests</li>
+<li><cite>./setup.py build_readme</cite>: rebuilds the <cite>README.rst</cite> from <cite>doc/readme/README.rst</cite></li>
+<li><cite>./setup.py build_site &lt;dir&gt;</cite>: builds the documentation website from <cite>doc/site/index.rst</cite> into <cite>&lt;dir&gt;</cite></li>
+</ul>
 </div>
 <div class="section" id="api">
 <h2><a class="toc-backref" href="#id9">API</a><a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
