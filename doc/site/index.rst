@@ -69,6 +69,7 @@ Development
 To install PandasSchema's development requirements, run
 
 .. code:: bash
+
     pip install -r requirements.txt
 
 The setup.py can be run as an executable, and it provides the following extra commands:

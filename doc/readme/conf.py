@@ -1,9 +1,6 @@
 import sys
 import pathlib
 
-
-sys.path.append('/home/michael/Programming/sphinx-restbuilder')
-
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
@@ -11,7 +8,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinxcontrib.restbuilder',
     'sphinx.ext.autosectionlabel'
-    #'sphinx_autodoc_annotation'
 ]
 
 autoclass_content = 'both'
