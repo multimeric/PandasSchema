@@ -11,10 +11,10 @@ For example, say your code expects a CSV that looks a bit like this:
 
 Now you want to be able to ensure that the data in your CSV is in the correct format:
 
-.. include:: ../../example/example.py
-    :code: python
+.. literalinclude:: ../../example/example.py
+    :language: python
 
 PandasSchema would then output
 
-.. include:: ../../example/result.txt
+.. literalinclude:: ../../example/result.txt
 
