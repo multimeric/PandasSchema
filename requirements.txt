@@ -1,0 +1,3 @@
+git+https://github.com/TMiguelT/sphinxcontrib-restbuilder
+sphinx
+sphinx-autodoc-annotation

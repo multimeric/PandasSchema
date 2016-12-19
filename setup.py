@@ -60,7 +60,7 @@ class BuildHtmlDocs(distutils.cmd.Command):
 
 
 setup(
-    name='PandasSchema',
+    name='pandas_schema',
     version='0.1.0',
     description='A validation library for Pandas data frames using user-friendly schemas',
     long_description=long_description,
@@ -79,7 +79,6 @@ setup(
     keywords='pandas csv verification schema',
     packages=find_packages(exclude=['test']),
     install_requires=['numpy', 'pandas'],
-    setup_requires=['sphinx', 'sphinxcontrib-restbuilder', 'sphinx-autodoc-annotation'],
     cmdclass={
         'build_readme': BuildReadme,
         'build_docs': BuildHtmlDocs

@@ -63,8 +63,23 @@ able to use your validation as though it were a built-in Validation.
         def validate(self, series: pd.Series) -> pd.Series:
             return series.astype(str).str.contains(self.pattern)
 
+Development
+-----------
+
+To install PandasSchema's development requirements, run
+
+.. code:: bash
+    pip install -r requirements.txt
+
+The setup.py can be run as an executable, and it provides the following extra commands:
+* `./setup.py test`: runs the tests
+* `./setup.py build_readme`: rebuilds the `README.rst` from `doc/readme/README.rst`
+* `./setup.py build_site <dir>`: builds the documentation website from `doc/site/index.rst` into `<dir>`
+
 API
 ---
+The public classes not documented above are shown here.
+
 Schema
 ~~~~~~
 .. py:currentmodule:: schema
