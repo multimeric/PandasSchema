@@ -81,6 +81,6 @@ setup(
     install_requires=['numpy', 'pandas'],
     cmdclass={
         'build_readme': BuildReadme,
-        'build_docs': BuildHtmlDocs
+        'build_site': BuildHtmlDocs
     }
 )
