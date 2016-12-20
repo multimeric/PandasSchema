@@ -232,7 +232,7 @@ class CanConvertInt(ValidationTestBase):
         )
 
 
-class InList(ValidationTestBase):
+class InListCaseSensitive(ValidationTestBase):
     def setUp(self):
         self.validator = InListValidation(['a', 'b', 'c'])
 
@@ -252,7 +252,40 @@ class InList(ValidationTestBase):
             [
                 'aa',
                 'bb',
-                'd'
+                'd',
+                'A',
+                'B',
+                'C'
+            ],
+            False,
+            'accepts elements that are not in the validation list'
+        )
+
+
+class InListCaseInsensitive(ValidationTestBase):
+    def setUp(self):
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False)
+
+    def test_valid_elements(self):
+        self.validate_and_compare(
+            [
+                'a',
+                'b',
+                'c',
+                'A',
+                'B',
+                'C'
+            ],
+            True,
+            'does not accept elements that are in the validation list'
+        )
+
+    def test_invalid_elements(self):
+        self.validate_and_compare(
+            [
+                'aa',
+                'bb',
+                'd',
             ],
             False,
             'accepts elements that are not in the validation list'

@@ -275,18 +275,22 @@ class InListValidation(_ElementValidation):
     Checks that each element in this column is contained within a list of possibilities
     """
 
-    def __init__(self, options: typing.Iterable):
+    def __init__(self, options: typing.Iterable, case_sensitive: bool = True):
         """
         :param options: A list of values to check. If the value of a cell is in this list, it is considered to pass the
             validation
         """
+        self.case_sensitive = case_sensitive
         self.options = options
 
     def get_message(self):
         return 'is not in the list of legal options ({})'.format(', '.join(self.options))
 
     def validate(self, series: pd.Series) -> pd.Series:
-        return series.isin(self.options)
+        if self.case_sensitive:
+            return series.isin(self.options)
+        else:
+            return series.str.lower().isin([s.lower() for s in self.options])
 
 
 class DateFormatValidation(_ElementValidation):
