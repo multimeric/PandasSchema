@@ -1,12 +1,10 @@
-import sys
 import pathlib
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 
-here = pathlib.Path(__file__).parent
-sys.path.append(str((here / '../..').resolve()))
-examples = here / '../example'
+examples = (pathlib.Path(__file__) / '../../example').resolve()
+
 
 class Example(unittest.TestCase):
     def test_example(self):
@@ -20,4 +18,3 @@ class Example(unittest.TestCase):
             code = compile(code_file.read(), str(code_path), 'exec')
             exec(code)
             self.assertEqual(stdout.getvalue(), result_file.read())
-

@@ -39,6 +39,8 @@ extensions = [
     'sphinx.ext.autosectionlabel'
 ]
 
+html_use_smartypants = False
+
 autoclass_content = 'both'
 
 # Add any paths that contain templates here, relative to this directory.

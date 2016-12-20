@@ -5,12 +5,12 @@ import pandas as pd
 import numpy as np
 import typing
 
-import column
-from validation_warning import ValidationWarning
-from errors import PanSchArgumentError
+from . import column
+from .validation_warning import ValidationWarning
+from .errors import PanSchArgumentError
 
 
-class BaseValidation:
+class _BaseValidation:
     """
     The validation base class that defines any object that can create a list of errors from a Series
     """
@@ -26,9 +26,9 @@ class BaseValidation:
         """
 
 
-class ElementValidation(BaseValidation):
+class _ElementValidation(_BaseValidation):
     """
-    Implements the BaseValidation interface by returning a Boolean series for each element that either passes or
+    Implements the _BaseValidation interface by returning a Boolean series for each element that either passes or
     fails the validation
     """
     __metaclass__ = abc.ABCMeta
@@ -47,6 +47,12 @@ class ElementValidation(BaseValidation):
         :param series:
         :return:
         """
+
+    def __invert__(self):
+        """
+        Returns a negated version of this validation
+        """
+        return _InverseValidation(self)
 
     def get_errors(self, series: pd.Series, column: 'column.Column'):
 
@@ -77,7 +83,22 @@ class ElementValidation(BaseValidation):
         return errors
 
 
-class CustomValidation(ElementValidation):
+class _InverseValidation(_ElementValidation):
+    """
+    Negates an ElementValidation
+    """
+
+    def __init__(self, validation: _ElementValidation):
+        self.negated = validation
+
+    def validate(self, series: pd.Series):
+        return ~ self.negated.validate(series)
+
+    def get_message(self):
+        return self.negated.get_message() + ' <negated>'
+
+
+class CustomValidation(_ElementValidation):
     """
     Validates using a user-provided function and message.
     """
@@ -103,7 +124,7 @@ class CustomValidation(ElementValidation):
         return self._validation(series)
 
 
-class InRangeValidation(ElementValidation):
+class InRangeValidation(_ElementValidation):
     """
     Checks that each element in the series is within a given numerical range
     """
@@ -124,7 +145,7 @@ class InRangeValidation(ElementValidation):
         return (series >= self.min) & (series < self.max)
 
 
-class IsDtypeValidation(BaseValidation):
+class IsDtypeValidation(_BaseValidation):
     """
     Checks that a series has a certain numpy dtype
     """
@@ -144,7 +165,7 @@ class IsDtypeValidation(BaseValidation):
             return []
 
 
-class CanCallValidation(ElementValidation):
+class CanCallValidation(_ElementValidation):
     """
     Validates if a given function can be called on each element in a column without raising an exception
     """
@@ -198,26 +219,28 @@ class CanConvertValidation(CanCallValidation):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
-class MatchesRegexValidation(ElementValidation):
+class MatchesPatternValidation(_ElementValidation):
     """
-    Validates that a regular expression can match somewhere in each element in this column
+    Validates that a string or regular expression can match somewhere in each element in this column
     """
 
-    def __init__(self, regex: typing.re.Pattern):
+    def __init__(self, pattern, **kwargs):
         """
-        :param regex: A regular expression object, created using re.compile or similar
+        :param kwargs: Arguments to pass to Series.str.contains
+            (http://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.str.contains.html)
+            pat is the only required argument
         """
-
-        self.pattern = regex
+        self.pattern = pattern
+        self.kwargs = kwargs
 
     def get_message(self):
-        return 'does not match the regex "{}"'.format(self.pattern)
+        return 'does not match the pattern "{}"'.format(self.pattern)
 
     def validate(self, series: pd.Series) -> pd.Series:
-        return series.astype(str).str.contains(self.pattern)
+        return series.astype(str).str.contains(self.pattern, **self.kwargs)
 
 
-class TrailingWhitespaceValidation(ElementValidation):
+class TrailingWhitespaceValidation(_ElementValidation):
     """
     Checks that there is no trailing whitespace in this column
     """
@@ -232,7 +255,7 @@ class TrailingWhitespaceValidation(ElementValidation):
         return ~series.astype(str).str.contains('\s+$')
 
 
-class LeadingWhitespaceValidation(ElementValidation):
+class LeadingWhitespaceValidation(_ElementValidation):
     """
     Checks that there is no trailing whitespace in this column
     """
@@ -247,7 +270,7 @@ class LeadingWhitespaceValidation(ElementValidation):
         return ~series.astype(str).str.contains('^\s+')
 
 
-class InListValidation(ElementValidation):
+class InListValidation(_ElementValidation):
     """
     Checks that each element in this column is contained within a list of possibilities
     """
@@ -266,7 +289,7 @@ class InListValidation(ElementValidation):
         return series.isin(self.options)
 
 
-class DateFormatValidation(ElementValidation):
+class DateFormatValidation(_ElementValidation):
     """
     Checks that each element in this column is a valid date according to a provided format string
     """

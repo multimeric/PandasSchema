@@ -1,16 +1,15 @@
 from io import StringIO
-
-from schema import Schema
 import unittest
-import column
-from validation import LeadingWhitespaceValidation
 import pandas as pd
+
+from pandas_schema import Schema, Column
+from pandas_schema.validation import LeadingWhitespaceValidation
 
 
 class UnorderedSchema(unittest.TestCase):
     schema = Schema([
-        column.Column('a'),
-        column.Column('b', [LeadingWhitespaceValidation()])
+        Column('a'),
+        Column('b', [LeadingWhitespaceValidation()])
     ], ordered=False)
 
     def test_fields(self):
@@ -56,12 +55,14 @@ b,a
 
         self.assertEqual(len(results), 1, 'There should be 1 error')
         self.assertEqual(results[0].row, 0)
-        self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by name')
+        self.assertEqual(results[0].column, 'b',
+                         'The Schema object is not associating columns and column schemas by name')
+
 
 class OrderedSchema(unittest.TestCase):
     schema = Schema([
-        column.Column('a', [LeadingWhitespaceValidation()]),
-        column.Column('b')
+        Column('a', [LeadingWhitespaceValidation()]),
+        Column('b')
     ], ordered=True)
 
     def test_mixed_columns(self):
@@ -87,4 +88,5 @@ b,a
 
         self.assertEqual(len(results), 1, 'There should be 1 error')
         self.assertEqual(results[0].row, 0)
-        self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by position')
+        self.assertEqual(results[0].column, 'b',
+                         'The Schema object is not associating columns and column schemas by position')

@@ -18,7 +18,7 @@ Built-in Validators
 -------------------
 .. automodule:: validation
     :members:
-    :exclude-members: BaseValidation,ElementValidation,CustomValidation
+    :exclude-members: _BaseValidation,ElementValidation,CustomValidation
 
 
 Custom Validators

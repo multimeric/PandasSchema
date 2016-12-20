@@ -77,7 +77,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     keywords='pandas csv verification schema',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(include=['pandas_schema']),
     install_requires=['numpy', 'pandas'],
     cmdclass={
         'build_readme': BuildReadme,

@@ -1,7 +1,8 @@
 import unittest
-from column import Column
-from validation import CanConvertValidation, LeadingWhitespaceValidation, TrailingWhitespaceValidation
 import pandas as pd
+
+from pandas_schema import Column
+from pandas_schema.validation import CanConvertValidation, LeadingWhitespaceValidation, TrailingWhitespaceValidation
 
 
 class SingleValidationColumn(unittest.TestCase):

@@ -1,8 +1,9 @@
-from validation_warning import ValidationWarning
 import unittest
 
-class WarningTest(unittest.TestCase):
+from pandas_schema import ValidationWarning
 
+
+class WarningTest(unittest.TestCase):
     MESSAGE = 'Message'
 
     def test_shows_row_col(self):

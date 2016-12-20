@@ -1,9 +1,9 @@
 import pandas as pd
 import typing
 
-from errors import PanSchInvalidSchemaError
-from validation_warning import ValidationWarning
-from column import Column
+from .errors import PanSchInvalidSchemaError
+from .validation_warning import ValidationWarning
+from .column import Column
 
 
 class Schema:

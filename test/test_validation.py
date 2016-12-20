@@ -1,14 +1,10 @@
 import json
-
-from validation import LeadingWhitespaceValidation, TrailingWhitespaceValidation, CanCallValidation, \
-    DateFormatValidation, InListValidation, MatchesRegexValidation, CanConvertValidation, BaseValidation, \
-    InRangeValidation, IsDtypeValidation, CustomValidation
 import unittest
-import pandas as pd
-import numpy as np
 import re
 
-from validation_warning import ValidationWarning
+from pandas_schema.validation import _BaseValidation
+from pandas_schema.validation import *
+from pandas_schema import ValidationWarning
 
 
 class ValidationTestBase(unittest.TestCase):
@@ -19,7 +15,7 @@ class ValidationTestBase(unittest.TestCase):
     def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
 
         # Check that self.validator is correct
-        if not self.validator or not isinstance(self.validator, BaseValidation):
+        if not self.validator or not isinstance(self.validator, _BaseValidation):
             raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
 
         # Ensure we're comparing series correctly
@@ -47,6 +43,7 @@ class Custom(ValidationTestBase):
 
     def test_invalid_inputs(self):
         self.validate_and_compare(['fail', 'failure'], False, 'accepted invalid inputs')
+
 
 class LeadingWhitespace(ValidationTestBase):
     """
@@ -290,7 +287,7 @@ class DateFormat(ValidationTestBase):
 
 class StringRegexMatch(ValidationTestBase):
     def setUp(self):
-        self.validator = MatchesRegexValidation('^.+\.txt$')
+        self.validator = MatchesPatternValidation('^.+\.txt$')
 
     def test_valid_strings(self):
         self.validate_and_compare(
@@ -321,7 +318,7 @@ class CompiledRegexMatch(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = MatchesRegexValidation(re.compile('^.+\.txt$', re.IGNORECASE))
+        self.validator = MatchesPatternValidation(re.compile('^.+\.txt$', re.IGNORECASE))
 
     def test_valid_strings(self):
         self.validate_and_compare(
@@ -405,3 +402,34 @@ class Dtype(ValidationTestBase):
 
         self.assertEqual(len(errors), 1)
         self.assertEqual(type(errors[0]), ValidationWarning)
+
+
+class Negate(ValidationTestBase):
+    """
+    Tests the ~ operator on a MatchesPatternValidation
+    """
+
+    def setUp(self):
+        self.validator = ~MatchesPatternValidation('fail')
+
+    def test_valid_items(self):
+        self.validate_and_compare(
+            [
+                'Pass',
+                '1',
+                'True'
+            ],
+            True,
+            'Rejects values that should pass'
+        )
+
+    def test_invalid_items(self):
+        self.validate_and_compare(
+            [
+                'fail',
+                'thisfails',
+                'failure'
+            ],
+            False,
+            'Accepts values that should pass'
+        )

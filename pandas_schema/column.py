@@ -1,16 +1,16 @@
 import typing
-import validation
 import pandas as pd
-from validation_warning import ValidationWarning
 
+from . import validation
+from .validation_warning import ValidationWarning
 
 class Column:
-    def __init__(self, name: str, validations: typing.Iterable['validation.BaseValidation'] = [], allow_empty=False):
+    def __init__(self, name: str, validations: typing.Iterable['validation._BaseValidation'] = [], allow_empty=False):
         """
         Creates a new Column object
 
         :param name: The column header that defines this column. This must be identical to the header used in the CSV/Data Frame you are validating.
-        :param validations: An iterable of objects implementing BaseValidation that will generate ValidationErrors
+        :param validations: An iterable of objects implementing _BaseValidation that will generate ValidationErrors
         :param allow_empty: True if an empty column is considered valid. False if we leave that logic up to the Validation
         """
         self.name = name
