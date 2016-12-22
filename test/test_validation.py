@@ -30,13 +30,13 @@ class ValidationTestBase(unittest.TestCase):
                 self.assertEqual(result, expected_result, msg)
 
 
-class Custom(ValidationTestBase):
+class CustomSeries(ValidationTestBase):
     """
-    Tests the CustomValidation
+    Tests the CustomSeriesValidation
     """
 
     def setUp(self):
-        self.validator = CustomValidation(lambda s: ~s.str.contains('fail'), 'contained the word fail')
+        self.validator = CustomSeriesValidation(lambda s: ~s.str.contains('fail'), 'contained the word fail')
 
     def test_valid_inputs(self):
         self.validate_and_compare(['good', 'success'], True, 'did not accept valid inputs')
@@ -44,6 +44,20 @@ class Custom(ValidationTestBase):
     def test_invalid_inputs(self):
         self.validate_and_compare(['fail', 'failure'], False, 'accepted invalid inputs')
 
+
+class CustomElement(ValidationTestBase):
+    """
+    Tests the CustomElementValidation
+    """
+
+    def setUp(self):
+        self.validator = CustomElementValidation(lambda s: s.startswith('_start_'), "Didn't begin with '_start_'")
+
+    def test_valid_inputs(self):
+        self.validate_and_compare(['_start_sdiyhsd', '_start_234fpwunxc\n'], True, 'did not accept valid inputs')
+
+    def test_invalid_inputs(self):
+        self.validate_and_compare(['fail', '324wfp9ni'], False, 'accepted invalid inputs')
 
 class LeadingWhitespace(ValidationTestBase):
     """
@@ -462,6 +476,38 @@ class Negate(ValidationTestBase):
                 'fail',
                 'thisfails',
                 'failure'
+            ],
+            False,
+            'Accepts values that should pass'
+        )
+
+
+class Or(ValidationTestBase):
+    """
+    Tests the | operator on two MatchesPatternValidations
+    """
+
+    def setUp(self):
+        self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation('pass')
+
+    def test_valid_items(self):
+        self.validate_and_compare(
+            [
+                'pass',
+                'yes',
+                'passyes',
+                '345yes345'
+            ],
+            True,
+            'Rejects values that should pass'
+        )
+
+    def test_invalid_items(self):
+        self.validate_and_compare(
+            [
+                'fail',
+                'YES',
+                'YPESS'
             ],
             False,
             'Accepts values that should pass'

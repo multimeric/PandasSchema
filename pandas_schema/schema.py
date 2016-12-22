@@ -14,7 +14,8 @@ class Schema:
     def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
         """
         :param columns: A list of column objects
-        :param ordered: True if the data frame must be in the same order as the schema. Defaults to False
+        :param ordered: True if the Schema should associate its Columns with DataFrame columns by position only, ignoring
+            the header names. False if the columns should be associated by column header names only. Defaults to False
         """
         if not columns:
             raise PanSchInvalidSchemaError('An instance of the schema class must have a columns list')

@@ -1,5 +1,5 @@
 PandasSchema is a module for validating tabulated data, such as CSVs (Comma Separated Value files), and TSVs (Tab
-Separated Value files). It uses the incredibly powerful data analysis tool pandas to do so quickly and efficiently.
+Separated Value files). It uses the incredibly powerful data analysis tool Pandas to do so quickly and efficiently.
 
 For example, say your code expects a CSV that looks a bit like this:
 
@@ -17,5 +17,5 @@ Now you want to be able to ensure that the data in your CSV is in the correct fo
 
 PandasSchema would then output
 
-.. literalinclude:: ../../example/result.txt
-
+.. literalinclude:: ../../example/example.txt
+    :language: none

@@ -4,6 +4,7 @@ import datetime
 import pandas as pd
 import numpy as np
 import typing
+import operator
 
 from . import column
 from .validation_warning import ValidationWarning
@@ -26,7 +27,7 @@ class _BaseValidation:
         """
 
 
-class _ElementValidation(_BaseValidation):
+class _SeriesValidation(_BaseValidation):
     """
     Implements the _BaseValidation interface by returning a Boolean series for each element that either passes or
     fails the validation
@@ -53,6 +54,18 @@ class _ElementValidation(_BaseValidation):
         Returns a negated version of this validation
         """
         return _InverseValidation(self)
+
+    def __or__(self, other: '_SeriesValidation'):
+        """
+        Returns a validation which is true if either this or the other validation is true
+        """
+        return _CombinedValidation(self, other, operator.or_)
+
+    def __and__(self, other: '_SeriesValidation'):
+        """
+        Returns a validation which is true if either this or the other validation is true
+        """
+        return _CombinedValidation(self, other, operator.and_)
 
     def get_errors(self, series: pd.Series, column: 'column.Column'):
 
@@ -83,12 +96,12 @@ class _ElementValidation(_BaseValidation):
         return errors
 
 
-class _InverseValidation(_ElementValidation):
+class _InverseValidation(_SeriesValidation):
     """
     Negates an ElementValidation
     """
 
-    def __init__(self, validation: _ElementValidation):
+    def __init__(self, validation: _SeriesValidation):
         self.negated = validation
 
     def validate(self, series: pd.Series):
@@ -98,9 +111,27 @@ class _InverseValidation(_ElementValidation):
         return self.negated.get_message() + ' <negated>'
 
 
-class CustomValidation(_ElementValidation):
+class _CombinedValidation(_SeriesValidation):
     """
-    Validates using a user-provided function and message.
+    Validates if one and/or the other validation is true for an element
+    """
+
+    def __init__(self, validation_a: _SeriesValidation, validation_b: _SeriesValidation, operator):
+        self.operator = operator
+        self.v_a = validation_a
+        self.v_b = validation_b
+
+    def validate(self, series: pd.Series):
+        return self.operator(self.v_a.validate(series), self.v_b.validate(series))
+
+    def get_message(self):
+        return '({}) {} ({})'.format(self.v_a.get_message(), self.operator, self.v_b.get_message())
+
+
+class CustomSeriesValidation(_SeriesValidation):
+    """
+    Validates using a user-provided function that operates on an entire series (for example by using one of the pandas
+    Series methods: http://pandas.pydata.org/pandas-docs/stable/api.html#series)
     """
 
     def __init__(self, validation: typing.Callable[[pd.Series], pd.Series], message: str):
@@ -124,7 +155,33 @@ class CustomValidation(_ElementValidation):
         return self._validation(series)
 
 
-class InRangeValidation(_ElementValidation):
+class CustomElementValidation(_SeriesValidation):
+    """
+    Validates using a user-provided function that operates on each element
+    """
+
+    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any], message: str):
+        """
+        :param message: The error message to provide to the user if this validation fails. The row and column and
+            failing value will automatically be prepended to this message, so you only have to provide a message that
+            describes what went wrong, for example 'failed my validation' will become
+
+            {row: 1, column: "Column Name"}: "Value" failed my validation
+        :param validation: A function that takes the value of a data frame cell and returns True if it passes the
+            the validation, and false if it doesn't
+        """
+        self._message = message
+        self._validation = validation
+        super().__init__()
+
+    def get_message(self):
+        return self._message
+
+    def validate(self, series: pd.Series) -> pd.Series:
+        return series.apply(self._validation)
+
+
+class InRangeValidation(_SeriesValidation):
     """
     Checks that each element in the series is within a given numerical range
     """
@@ -165,7 +222,7 @@ class IsDtypeValidation(_BaseValidation):
             return []
 
 
-class CanCallValidation(_ElementValidation):
+class CanCallValidation(_SeriesValidation):
     """
     Validates if a given function can be called on each element in a column without raising an exception
     """
@@ -219,7 +276,7 @@ class CanConvertValidation(CanCallValidation):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
-class MatchesPatternValidation(_ElementValidation):
+class MatchesPatternValidation(_SeriesValidation):
     """
     Validates that a string or regular expression can match somewhere in each element in this column
     """
@@ -240,7 +297,7 @@ class MatchesPatternValidation(_ElementValidation):
         return series.astype(str).str.contains(self.pattern, **self.kwargs)
 
 
-class TrailingWhitespaceValidation(_ElementValidation):
+class TrailingWhitespaceValidation(_SeriesValidation):
     """
     Checks that there is no trailing whitespace in this column
     """
@@ -255,9 +312,9 @@ class TrailingWhitespaceValidation(_ElementValidation):
         return ~series.astype(str).str.contains('\s+$')
 
 
-class LeadingWhitespaceValidation(_ElementValidation):
+class LeadingWhitespaceValidation(_SeriesValidation):
     """
-    Checks that there is no trailing whitespace in this column
+    Checks that there is no leading whitespace in this column
     """
 
     def __init__(self):
@@ -270,7 +327,7 @@ class LeadingWhitespaceValidation(_ElementValidation):
         return ~series.astype(str).str.contains('^\s+')
 
 
-class InListValidation(_ElementValidation):
+class InListValidation(_SeriesValidation):
     """
     Checks that each element in this column is contained within a list of possibilities
     """
@@ -293,7 +350,7 @@ class InListValidation(_ElementValidation):
             return series.str.lower().isin([s.lower() for s in self.options])
 
 
-class DateFormatValidation(_ElementValidation):
+class DateFormatValidation(_SeriesValidation):
     """
     Checks that each element in this column is a valid date according to a provided format string
     """
