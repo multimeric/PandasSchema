@@ -9,7 +9,7 @@ For the full documentation, refer to the `Github Pages Website
 
 PandasSchema is a module for validating tabulated data, such as CSVs
 (Comma Separated Value files), and TSVs (Tab Separated Value files).
-It uses the incredibly powerful data analysis tool pandas to do so
+It uses the incredibly powerful data analysis tool Pandas to do so
 quickly and efficiently.
 
 For example, say your code expects a CSV that looks a bit like this:
@@ -52,7 +52,7 @@ correct format:
 
 PandasSchema would then output
 
-::
+.. code:: none
 
    {row: 0, column: "Given Name"}: "Gerald " contains trailing whitespace
    {row: 1, column: "Age"}: "270" was not in the range [0, 120)
