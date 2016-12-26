@@ -52,7 +52,7 @@ correct format:
 
 PandasSchema would then output
 
-.. code:: none
+.. code:: text
 
    {row: 0, column: "Given Name"}: "Gerald " contains trailing whitespace
    {row: 1, column: "Age"}: "270" was not in the range [0, 120)

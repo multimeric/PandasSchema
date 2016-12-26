@@ -18,4 +18,4 @@ Now you want to be able to ensure that the data in your CSV is in the correct fo
 PandasSchema would then output
 
 .. literalinclude:: ../../example/example.txt
-    :language: none
+    :language: text
