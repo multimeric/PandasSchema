@@ -61,7 +61,7 @@ class BuildHtmlDocs(distutils.cmd.Command):
 
 setup(
     name='pandas_schema',
-    version='0.2.1',
+    version='0.3.0',
     description='A validation library for Pandas data frames using user-friendly schemas',
     long_description=long_description,
     url='https://github.com/TMiguelT/PandasSchema',

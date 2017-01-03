@@ -83,30 +83,20 @@ this is the recommended method to implement the validation
     :members: CustomSeriesValidation,CustomElementValidation
 
 
-Inheriting From ElementValidation
+Inheriting From _SeriesValidation
 _________________________________
 If you want to implement more complicated logic that doesn't fit in a lambda, or you want to parameterize your Validator
-and re-use it in different parts of your application, you can instead make a class that inherits from ElementValidation.
+and re-use it in different parts of your application, you can instead make a class that inherits from
+:code:`_SeriesValidation`.
 
-For example, the (simplified) implementation of the MatchesRegexValidation is presented below. All you need to do is write
-an :code:`__init__`, :code:`get_message` and :code:`validate` function with the same signatures as in this example, and you should be
-able to use your validation as though it were a built-in Validation.
+All this class needs is:
 
-.. code:: python
+* An :code:`__init__` constructor that calls :code:`super().__init__(**kwargs)`
+* A :code:`default_message` property
+* A :code:`validate` method
 
-    class MatchesRegexValidation(ElementValidation):
-        """
-        Validates that a regular expression can match somewhere in each element in this column
-        """
-
-        def __init__(self, regex: typing.re.Pattern):
-            self.pattern = regex
-
-        def get_message(self) -> str:
-            return 'does not match the regex "{}"'.format(self.pattern)
-
-        def validate(self, series: pd.Series) -> pd.Series:
-            return series.astype(str).str.contains(self.pattern)
+For reference on how these fields should look, have a look at the source code for the `Built-in Validators`_ (click the
+:code:`[source]` button next to any of them)
 
 Boolean Logic on Validators
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

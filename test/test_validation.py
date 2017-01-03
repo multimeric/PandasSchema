@@ -2,6 +2,7 @@ import json
 import unittest
 import re
 
+from pandas_schema import Column
 from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import *
 from pandas_schema import ValidationWarning
@@ -58,6 +59,7 @@ class CustomElement(ValidationTestBase):
 
     def test_invalid_inputs(self):
         self.validate_and_compare(['fail', '324wfp9ni'], False, 'accepted invalid inputs')
+
 
 class LeadingWhitespace(ValidationTestBase):
     """
@@ -512,3 +514,34 @@ class Or(ValidationTestBase):
             False,
             'Accepts values that should pass'
         )
+
+
+class CustomMessage(ValidationTestBase):
+    """
+    Tests that custom error messages work as expected
+    """
+
+    def setUp(self):
+        self.message = "UNUSUAL MESSAGE THAT WOULDN'T BE IN A NORMAL ERROR"
+
+    def test_default_message(self):
+        validator = InRangeValidation(min=4)
+        for error in validator.get_errors(pd.Series(
+                [
+                    1,
+                    2,
+                    3
+                ]
+        ), Column('')):
+            self.assertNotRegex(error.message, self.message, 'Validator not using the default warning message!')
+
+    def test_custom_message(self):
+        validator = InRangeValidation(min=4, message=self.message)
+        for error in validator.get_errors(pd.Series(
+                [
+                    1,
+                    2,
+                    3
+                ]
+        ), Column('')):
+            self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
