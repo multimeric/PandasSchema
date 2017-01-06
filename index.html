@@ -59,7 +59,7 @@
 <li><a class="reference internal" href="#module-pandas_schema.validation" id="id10">Built-in Validators</a></li>
 <li><a class="reference internal" href="#custom-validators" id="id11">Custom Validators</a><ul>
 <li><a class="reference internal" href="#simple-validators" id="id12">Simple Validators</a></li>
-<li><a class="reference internal" href="#inheriting-from-elementvalidation" id="id13">Inheriting From ElementValidation</a></li>
+<li><a class="reference internal" href="#inheriting-from-seriesvalidation" id="id13">Inheriting From SeriesValidation</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#boolean-logic-on-validators" id="id14">Boolean Logic on Validators</a></li>
@@ -107,7 +107,7 @@ Separated Value files). It uses the incredibly powerful data analysis tool Panda
 </pre></div>
 </div>
 <p>PandasSchema would then output</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>{row: 0, column: &quot;Given Name&quot;}: &quot;Gerald &quot; contains trailing whitespace
+<div class="highlight-text"><div class="highlight"><pre><span></span>{row: 0, column: &quot;Given Name&quot;}: &quot;Gerald &quot; contains trailing whitespace
 {row: 1, column: &quot;Age&quot;}: &quot;270&quot; was not in the range [0, 120)
 {row: 1, column: &quot;Sex&quot;}: &quot;male&quot; is not in the list of legal options (Male, Female, Other)
 {row: 2, column: &quot;Family Name&quot;}: &quot;Majewska &quot; contains trailing whitespace
@@ -228,7 +228,7 @@ the header names. False if the columns should be associated by column header nam
 <span id="built-in-validators"></span><h2><a class="toc-backref" href="#id10">Built-in Validators</a><a class="headerlink" href="#module-pandas_schema.validation" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="pandas_schema.validation.CanCallValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">CanCallValidation</code><span class="sig-paren">(</span><em>func: typing.Callable</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#CanCallValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.CanCallValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">CanCallValidation</code><span class="sig-paren">(</span><em>func: typing.Callable</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#CanCallValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.CanCallValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validates if a given function can be called on each element in a column without raising an exception</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -243,7 +243,7 @@ function throws an error, this cell is considered to have failed the validation.
 
 <dl class="class">
 <dt id="pandas_schema.validation.CanConvertValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">CanConvertValidation</code><span class="sig-paren">(</span><em>_type: type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#CanConvertValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.CanConvertValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">CanConvertValidation</code><span class="sig-paren">(</span><em>_type: type</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#CanConvertValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.CanConvertValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks if each element in a column can be converted to a Python object type</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -258,7 +258,7 @@ only argument. If it throws an exception, the value is considered to fail the va
 
 <dl class="class">
 <dt id="pandas_schema.validation.DateFormatValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">DateFormatValidation</code><span class="sig-paren">(</span><em>date_format: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#DateFormatValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.DateFormatValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">DateFormatValidation</code><span class="sig-paren">(</span><em>date_format: str</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#DateFormatValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.DateFormatValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that each element in this column is a valid date according to a provided format string</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -274,7 +274,7 @@ list of format codes</td>
 
 <dl class="class">
 <dt id="pandas_schema.validation.InListValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">InListValidation</code><span class="sig-paren">(</span><em>options: typing.Iterable</em>, <em>case_sensitive: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#InListValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.InListValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">InListValidation</code><span class="sig-paren">(</span><em>options: typing.Iterable</em>, <em>case_sensitive: bool = True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#InListValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.InListValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that each element in this column is contained within a list of possibilities</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -289,7 +289,7 @@ validation</td>
 
 <dl class="class">
 <dt id="pandas_schema.validation.InRangeValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">InRangeValidation</code><span class="sig-paren">(</span><em>min: float = -inf</em>, <em>max: float = inf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#InRangeValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.InRangeValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">InRangeValidation</code><span class="sig-paren">(</span><em>min: float = -inf</em>, <em>max: float = inf</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#InRangeValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.InRangeValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that each element in the series is within a given numerical range</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -306,8 +306,15 @@ validation</td>
 </dd></dl>
 
 <dl class="class">
+<dt id="pandas_schema.validation.InverseValidation">
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">InverseValidation</code><span class="sig-paren">(</span><em>validation: pandas_schema.validation.SeriesValidation</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#InverseValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.InverseValidation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Negates an ElementValidation. Automatically created with ~validation, but can be used manually to specify a custom
+message</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="pandas_schema.validation.IsDtypeValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">IsDtypeValidation</code><span class="sig-paren">(</span><em>dtype: numpy.dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#IsDtypeValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.IsDtypeValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">IsDtypeValidation</code><span class="sig-paren">(</span><em>dtype: numpy.dtype</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#IsDtypeValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.IsDtypeValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that a series has a certain numpy dtype</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -321,13 +328,13 @@ validation</td>
 
 <dl class="class">
 <dt id="pandas_schema.validation.LeadingWhitespaceValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">LeadingWhitespaceValidation</code><a class="reference internal" href="_modules/pandas_schema/validation.html#LeadingWhitespaceValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.LeadingWhitespaceValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">LeadingWhitespaceValidation</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#LeadingWhitespaceValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.LeadingWhitespaceValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that there is no leading whitespace in this column</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="pandas_schema.validation.MatchesPatternValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">MatchesPatternValidation</code><span class="sig-paren">(</span><em>pattern</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#MatchesPatternValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.MatchesPatternValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">MatchesPatternValidation</code><span class="sig-paren">(</span><em>pattern</em>, <em>options={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#MatchesPatternValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.MatchesPatternValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validates that a string or regular expression can match somewhere in each element in this column</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -342,8 +349,31 @@ pat is the only required argument</td>
 </dd></dl>
 
 <dl class="class">
+<dt id="pandas_schema.validation.SeriesValidation">
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">SeriesValidation</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#SeriesValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.SeriesValidation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements the _BaseValidation interface by returning a Boolean series for each element that either passes or
+fails the validation</p>
+<dl class="attribute">
+<dt id="pandas_schema.validation.SeriesValidation.default_message">
+<code class="descname">default_message</code><a class="headerlink" href="#pandas_schema.validation.SeriesValidation.default_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a message to be displayed whenever this validation fails
+This should be a generic message for the validation type, but can be overwritten if the user provides a
+message kwarg</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pandas_schema.validation.SeriesValidation.validate">
+<code class="descname">validate</code><span class="sig-paren">(</span><em>series: pandas.core.series.Series</em><span class="sig-paren">)</span> &rarr; pandas.core.series.Series<a class="reference internal" href="_modules/pandas_schema/validation.html#SeriesValidation.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.SeriesValidation.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Boolean series, where each value of False is an element in the Series that has failed the validation
+:param series:
+:return:</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="pandas_schema.validation.TrailingWhitespaceValidation">
-<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">TrailingWhitespaceValidation</code><a class="reference internal" href="_modules/pandas_schema/validation.html#TrailingWhitespaceValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.TrailingWhitespaceValidation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pandas_schema.validation.</code><code class="descname">TrailingWhitespaceValidation</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pandas_schema/validation.html#TrailingWhitespaceValidation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pandas_schema.validation.TrailingWhitespaceValidation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that there is no trailing whitespace in this column</p>
 </dd></dl>
 
@@ -418,28 +448,19 @@ the validation, and false if it doesn't</li>
 </dd></dl>
 
 </div>
-<div class="section" id="inheriting-from-elementvalidation">
-<h3><a class="toc-backref" href="#id13">Inheriting From ElementValidation</a><a class="headerlink" href="#inheriting-from-elementvalidation" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="inheriting-from-seriesvalidation">
+<h3><a class="toc-backref" href="#id13">Inheriting From SeriesValidation</a><a class="headerlink" href="#inheriting-from-seriesvalidation" title="Permalink to this headline">¶</a></h3>
 <p>If you want to implement more complicated logic that doesn't fit in a lambda, or you want to parameterize your Validator
-and re-use it in different parts of your application, you can instead make a class that inherits from ElementValidation.</p>
-<p>For example, the (simplified) implementation of the MatchesRegexValidation is presented below. All you need to do is write
-an <code class="code docutils literal"><span class="pre">__init__</span></code>, <code class="code docutils literal"><span class="pre">get_message</span></code> and <code class="code docutils literal"><span class="pre">validate</span></code> function with the same signatures as in this example, and you should be
-able to use your validation as though it were a built-in Validation.</p>
-<div class="code python highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MatchesRegexValidation</span><span class="p">(</span><span class="n">ElementValidation</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Validates that a regular expression can match somewhere in each element in this column</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regex</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">regex</span>
-
-    <span class="k">def</span> <span class="nf">get_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s1">&#39;does not match the regex &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
-</pre></div>
-</div>
+and re-use it in different parts of your application, you can instead make a class that inherits from
+<code class="code docutils literal"><span class="pre">SeriesValidation</span></code>.</p>
+<p>All this class needs is:</p>
+<ul class="simple">
+<li>An <code class="code docutils literal"><span class="pre">__init__</span></code> constructor that calls <code class="code docutils literal"><span class="pre">super().__init__(**kwargs)</span></code></li>
+<li>A <code class="code docutils literal"><span class="pre">default_message</span></code> property</li>
+<li>A <code class="code docutils literal"><span class="pre">validate</span></code> method</li>
+</ul>
+<p>For reference on how these fields should look, have a look at the source code for the <a class="reference internal" href="#built-in-validators">Built-in Validators</a> (click the
+<code class="code docutils literal"><span class="pre">[source]</span></code> button next to any of them)</p>
 </div>
 </div>
 <div class="section" id="boolean-logic-on-validators">
@@ -545,7 +566,7 @@ row has already failed a validation.</p>
 <li><a class="reference internal" href="#module-pandas_schema.validation">Built-in Validators</a></li>
 <li><a class="reference internal" href="#custom-validators">Custom Validators</a><ul>
 <li><a class="reference internal" href="#simple-validators">Simple Validators</a></li>
-<li><a class="reference internal" href="#inheriting-from-elementvalidation">Inheriting From ElementValidation</a></li>
+<li><a class="reference internal" href="#inheriting-from-seriesvalidation">Inheriting From SeriesValidation</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#boolean-logic-on-validators">Boolean Logic on Validators</a></li>
