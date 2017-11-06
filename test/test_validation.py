@@ -14,6 +14,12 @@ class ValidationTestBase(unittest.TestCase):
             raise self.failureException(msg)
 
     def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
+        """
+        Checks that every element in the provided series is equal to `expected_result` after validation
+        :param series: The series to check
+        :param expected_result: Whether the elements in this series should pass the validation
+        :param msg: The message to display if this test fails
+        """
 
         # Check that self.validator is correct
         if not self.validator or not isinstance(self.validator, _BaseValidation):
@@ -359,6 +365,38 @@ class StringRegexMatch(ValidationTestBase):
             False,
             'accepts strings that do not match the regex'
         )
+
+
+class IsDistinct(ValidationTestBase):
+    def setUp(self):
+        self.validator = IsDistinctValidation()
+
+    def test_valid_strings(self):
+        self.validate_and_compare(
+            [
+                '1',
+                '2',
+                '3',
+                '4'
+            ],
+            True,
+            'does not accept unique strings'
+        )
+
+    def test_invalid_strings(self):
+        validation = self.validator.validate(pd.Series([
+            '1',
+            '1',
+            '3',
+            '4'
+        ]))
+
+        self.assertTrue((validation == pd.Series([
+            True,
+            False,
+            True,
+            True
+        ])).all(), 'did not identify the error')
 
 
 class CompiledRegexMatch(ValidationTestBase):

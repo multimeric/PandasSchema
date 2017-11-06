@@ -340,6 +340,22 @@ class LeadingWhitespaceValidation(_SeriesValidation):
         return ~series.astype(str).str.contains('^\s+')
 
 
+class IsDistinctValidation(_SeriesValidation):
+    """
+    Checks that every element of this column is different from each other element
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    @property
+    def default_message(self):
+        return 'contains values that are not unique'
+
+    def validate(self, series: pd.Series) -> pd.Series:
+        return ~series.duplicated(keep='first')
+
+
 class InListValidation(_SeriesValidation):
     """
     Checks that each element in this column is contained within a list of possibilities
