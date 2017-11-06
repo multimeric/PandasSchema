@@ -20,7 +20,7 @@ class Schema:
         if not columns:
             raise PanSchInvalidSchemaError('An instance of the schema class must have a columns list')
 
-        if not isinstance(columns, typing.List[Column]):
+        if not isinstance(columns, typing.List):
             raise PanSchInvalidSchemaError('The columns field must be a list of Column objects')
 
         if not isinstance(ordered, bool):

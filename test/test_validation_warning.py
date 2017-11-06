@@ -24,6 +24,6 @@ class WarningTest(unittest.TestCase):
         """
         v = ValidationWarning(self.MESSAGE)
         vs = str(v)
-        self.assertNotRegexpMatches(vs, 'row')
-        self.assertRegexpMatches(vs, self.MESSAGE)
-        self.assertNotRegexpMatches(vs, 'column')
+        self.assertNotRegex(vs, 'row')
+        self.assertRegex(vs, self.MESSAGE)
+        self.assertNotRegex(vs, 'column')
