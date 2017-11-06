@@ -83,12 +83,11 @@ this is the recommended method to implement the validation
     :members: CustomSeriesValidation,CustomElementValidation
 
 
-Inheriting From SeriesValidation
-________________________________
-
+Inheriting From _SeriesValidation
+_________________________________
 If you want to implement more complicated logic that doesn't fit in a lambda, or you want to parameterize your Validator
 and re-use it in different parts of your application, you can instead make a class that inherits from
-:code:`SeriesValidation`.
+:code:`_SeriesValidation`.
 
 All this class needs is:
 
