@@ -21,3 +21,9 @@ errors = schema.validate(test_data)
 
 for error in errors:
     print(error)
+
+
+errors2 = schema.validate(test_data, ['Age'])
+
+for error in errors2:
+    print(error)
