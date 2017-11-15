@@ -10,6 +10,7 @@ class Schema:
     """
     A schema that defines the columns required in the target DataFrame
     """
+    print("Look rick I'm a schema1")
 
     def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
         """
@@ -58,7 +59,6 @@ class Schema:
         # current schema, else raise an error
         else:
             if set(self.get_column_names()).intersection(columns) == set(columns):
-                print('yes1')
                 schema_cols = len(columns)
                 columns_to_pair = [column for column in self.columns if column.name in columns]
             else:
