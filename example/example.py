@@ -23,7 +23,7 @@ for error in errors:
     print(error)
 
 
-errors2 = schema.validate(test_data, ['Age'])
+other_errors = schema.validate(test_data, ['Age'])
 
-for error in errors2:
+for error in other_errors:
     print(error)

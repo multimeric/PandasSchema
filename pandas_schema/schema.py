@@ -10,8 +10,6 @@ class Schema:
     """
     A schema that defines the columns required in the target DataFrame
     """
-    print("Look rick I'm a schema1")
-
     def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
         """
         :param columns: A list of column objects
@@ -19,12 +17,10 @@ class Schema:
             the header names. False if the columns should be associated by column header names only. Defaults to False
         """
         if not columns:
-            raise PanSchInvalidSchemaError(
-                'An instance of the schema class must have a columns list')
+            raise PanSchInvalidSchemaError('An instance of the schema class must have a columns list')
 
         if not isinstance(columns, typing.List):
-            raise PanSchInvalidSchemaError(
-                'The columns field must be a list of Column objects')
+            raise PanSchInvalidSchemaError('The columns field must be a list of Column objects')
 
         if not isinstance(ordered, bool):
             raise PanSchInvalidSchemaError(
@@ -33,7 +29,7 @@ class Schema:
         self.columns = list(columns)
         self.ordered = ordered
 
-    def validate(self, df: pd.DataFrame, columns: typing.List[Column]=[]) -> typing.List[ValidationWarning]:
+    def validate(self, df: pd.DataFrame, columns: typing.List[Column]=None) -> typing.List[ValidationWarning]:
         """
         Runs a full validation of the target DataFrame using the internal columns list
 
@@ -46,7 +42,7 @@ class Schema:
 
         # If no columns are passed, validate against every column in the schema
         # This is the default behaviour
-        if columns == []:
+        if columns is None:
             schema_cols = len(self.columns)
             columns_to_pair = self.columns
             if df_cols != schema_cols:

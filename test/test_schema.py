@@ -13,10 +13,8 @@ class UnorderedSchema(unittest.TestCase):
     ], ordered=False)
 
     def test_fields(self):
-        self.assertEqual(len(self.schema.columns), 2,
-                         'The schema is not storing all of its columns')
-        self.assertEqual(self.schema.ordered, False,
-                         'The schema is not storing the correct value of ordered')
+        self.assertEqual(len(self.schema.columns), 2, 'The schema is not storing all of its columns')
+        self.assertEqual(self.schema.ordered, False, 'The schema is not storing the correct value of ordered')
 
     def test_validate_valid(self):
         df = pd.DataFrame({
