@@ -23,8 +23,7 @@ class Schema:
             raise PanSchInvalidSchemaError('The columns field must be a list of Column objects')
 
         if not isinstance(ordered, bool):
-            raise PanSchInvalidSchemaError(
-                'The ordered field must be a boolean')
+            raise PanSchInvalidSchemaError('The ordered field must be a boolean')
 
         self.columns = list(columns)
         self.ordered = ordered
@@ -37,6 +36,8 @@ class Schema:
         :return: A list of ValidationWarning objects that list the ways in which the DataFrame was invalid
         """
         errors = []
+
+        
 
         df_cols = len(df.columns)
 
