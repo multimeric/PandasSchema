@@ -30,3 +30,15 @@ class Example(unittest.TestCase):
             code = compile(code_file.read(), str(code_path), 'exec')
             exec(code)
             self.assertEqual(stdout.getvalue(), result_file.read())
+
+    def test_example_schema_subset(self):
+        """
+        Checks that the text printed out by ```example_schema_subset.py``` is the same as the text in example.txt
+        :return:
+        """
+        code_path = examples / 'example_schema_subset.py'
+        stdout = StringIO()
+        with code_path.open() as code_file, (examples / 'example_schema_subset.txt').open() as result_file, redirect_stdout(stdout):
+            code = compile(code_file.read(), str(code_path), 'exec')
+            exec(code)
+            self.assertEqual(stdout.getvalue(), result_file.read())

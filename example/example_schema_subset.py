@@ -17,7 +17,7 @@ Yuuwa,Miyake,270,male,7951WVLW
 Edyta,Majewska ,50,Female,775ANSID
 '''))
 
-errors = schema.validate(test_data)
+errors = schema.validate(test_data,['Age'])
 
 for error in errors:
     print(error)
