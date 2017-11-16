@@ -22,8 +22,7 @@ class UnorderedSchema(unittest.TestCase):
             'b': ['1', '2', '3']
         })
         results = self.schema.validate(df)
-        self.assertEqual(
-            len(results), 0, 'A correct data frame should have no errors')
+        self.assertEqual(len(results), 0, 'A correct data frame should have no errors')
 
     def test_validate_invalid(self):
         df = pd.DataFrame({
@@ -31,8 +30,7 @@ class UnorderedSchema(unittest.TestCase):
             'b': [' 1', '2', '3']
         })
         results = self.schema.validate(df)
-        self.assertEqual(
-            len(results), 1, 'An incorrect data frame should report errors')
+        self.assertEqual(len(results), 1, 'An incorrect data frame should report errors')
 
     def test_mixed_columns(self):
         """
@@ -61,8 +59,7 @@ b,a
 
         self.assertEqual(len(results), 1, 'There should be 1 error')
         self.assertEqual(results[0].row, 0)
-        self.assertEqual(results[0].column, 'b',
-                         'The Schema object is not associating columns and column schemas by name')
+        self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by name')
 
     def test_column_subset_detect(self):
         """
@@ -90,8 +87,7 @@ b,a
 
         self.assertEqual(len(results), 1, 'There should be 1 error')
         self.assertEqual(results[0].row, 0)
-        self.assertEqual(results[0].column, 'b',
-                         'The Schema object is not associating columns and column schemas by name')
+        self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by name')
 
         
     def test_column_subset_detect_empty(self):
@@ -169,5 +165,4 @@ b,a
 
         self.assertEqual(len(results), 1, 'There should be 1 error')
         self.assertEqual(results[0].row, 0)
-        self.assertEqual(results[0].column, 'b',
-                         'The Schema object is not associating columns and column schemas by position')
+        self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by position')
