@@ -21,3 +21,4 @@ errors = schema.validate(test_data)
 
 for error in errors:
     print(error)
+

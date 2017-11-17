@@ -30,3 +30,4 @@ class Example(unittest.TestCase):
             code = compile(code_file.read(), str(code_path), 'exec')
             exec(code)
             self.assertEqual(stdout.getvalue(), result_file.read())
+
