@@ -36,9 +36,6 @@ class Schema:
         :return: A list of ValidationWarning objects that list the ways in which the DataFrame was invalid
         """
         errors = []
-
-        
-
         df_cols = len(df.columns)
 
         # If no columns are passed, validate against every column in the schema
