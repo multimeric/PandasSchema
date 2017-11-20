@@ -13,9 +13,9 @@ class WarningTest(unittest.TestCase):
         """
         v = ValidationWarning(self.MESSAGE, '', 0, '')
         vs = str(v)
-        self.assertRegexpMatches(vs, 'row')
-        self.assertRegexpMatches(vs, self.MESSAGE)
-        self.assertRegexpMatches(vs, 'column')
+        self.assertRegex(vs, 'row')
+        self.assertRegex(vs, self.MESSAGE)
+        self.assertRegex(vs, 'column')
 
     def test_no_row_col(self):
         """

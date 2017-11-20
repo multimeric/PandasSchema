@@ -49,7 +49,7 @@ class DoubleValidationColumn(unittest.TestCase):
         self.assertEqual(len(results), 2 * len(self.ser), 'A Column produces the wrong number of errors')
         for i in range(2):
             in_row = [r for r in results if r.row == i]
-            self.assertEquals(len(in_row), 2, 'A Column does not report both errors for every row')
+            self.assertEqual(len(in_row), 2, 'A Column does not report both errors for every row')
 
 
 class AllowEmptyColumn(unittest.TestCase):
