@@ -61,7 +61,7 @@ class Schema:
                             'The additional data frame columns are: {add_columns}.'.format(
                                 n_schema=schema_cols,
                                 n_df=df_cols,
-                                add_columns=add_schema_columns,
+                                add_columns=add_df_columns,
                             )
                         )
                     )
@@ -74,7 +74,7 @@ class Schema:
                             'but the data frame has {n_df}. The additional schema columns are: {add_columns}.'.format(
                                 n_schema=schema_cols,
                                 n_df=df_cols,
-                                add_columns=add_df_columns,
+                                add_columns=add_schema_columns,
                             )
                         )
                     )
