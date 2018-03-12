@@ -45,11 +45,51 @@ class Schema:
             schema_cols = len(self.columns)
             columns_to_pair = self.columns
             if df_cols != schema_cols:
+
+                schema_columns = self.get_column_names()
+                df_columns = df.columns
+
+                add_schema_columns = [col for col in schema_columns if col not in df_columns]
+                add_df_columns = [col for col in df_columns if col not in schema_columns]
+
+                if not add_schema_columns:
+
+                    errors.append(
+                        ValidationWarning(
+                            'Invalid number of columns. The schema specifies {n_schema}, '
+                            'but the data frame has {n_df}. '
+                            'The additional data frame columns are: {add_columns}.'.format(
+                                n_schema=schema_cols,
+                                n_df=df_cols,
+                                add_columns=add_schema_columns,
+                            )
+                        )
+                    )
+                    return errors
+
+                if not add_df_columns:
+                    errors.append(
+                        ValidationWarning(
+                            'Invalid number of columns. The schema specifies {n_schema}, '
+                            'but the data frame has {n_df}. The additional schema columns are: {add_columns}.'.format(
+                                n_schema=schema_cols,
+                                n_df=df_cols,
+                                add_columns=add_df_columns,
+                            )
+                        )
+                    )
+                    return errors
+
                 errors.append(
                     ValidationWarning(
-                        'Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(
-                            schema_cols,
-                            df_cols)
+                        'Invalid number of columns. The schema specifies {n_schema}, '
+                        'but the data frame has {n_df}. The additional schema columns are: {add_columns_1} '
+                        'and the additional data frame columns are: {add_columns_2}.'.format(
+                            n_schema=schema_cols,
+                            n_df=df_cols,
+                            add_columns_1=add_schema_columns,
+                            add_columns_2=add_df_columns,
+                        )
                     )
                 )
                 return errors
