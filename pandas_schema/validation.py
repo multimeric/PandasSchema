@@ -84,7 +84,7 @@ class _SeriesValidation(_BaseValidation):
         simple_validation = ~self.validate(series)
         if column.allow_empty:
             # Failing results are those that are not empty, and fail the validation
-            validated = (series.str.len() > 0) & simple_validation
+            validated = ((series.dtype == 'str' and series.str.len() > 0) | (series.dtype == float and not series.isna)) & simple_validation
         else:
             validated = simple_validation
 
