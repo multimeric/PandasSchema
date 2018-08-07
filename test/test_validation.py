@@ -583,3 +583,14 @@ class CustomMessage(ValidationTestBase):
                 ]
         ), Column('')):
             self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
+
+    def test_validating_empty_range_value(self):
+        validator = InRangeValidation(min=4, message=self.message)
+        for error in validator.get_errors(pd.Series(
+                [
+                    1,
+                    None,
+                    3
+                ]
+        ), Column('', allow_empty=True)):
+            self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
