@@ -2,6 +2,8 @@ import json
 import unittest
 import re
 
+from numpy import nan
+
 from pandas_schema import Column
 from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import *
@@ -23,7 +25,8 @@ class ValidationTestBase(unittest.TestCase):
 
         # Check that self.validator is correct
         if not self.validator or not isinstance(self.validator, _BaseValidation):
-            raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
+            raise ValueError(
+                'The class must have the validator field set to an instance of a Validation subclass')
 
         # Ensure we're comparing series correctly
         self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
@@ -43,10 +46,12 @@ class CustomSeries(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CustomSeriesValidation(lambda s: ~s.str.contains('fail'), 'contained the word fail')
+        self.validator = CustomSeriesValidation(lambda s: ~s.str.contains('fail'),
+                                                'contained the word fail')
 
     def test_valid_inputs(self):
-        self.validate_and_compare(['good', 'success'], True, 'did not accept valid inputs')
+        self.validate_and_compare(['good', 'success'], True,
+                                  'did not accept valid inputs')
 
     def test_invalid_inputs(self):
         self.validate_and_compare(['fail', 'failure'], False, 'accepted invalid inputs')
@@ -58,10 +63,12 @@ class CustomElement(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CustomElementValidation(lambda s: s.startswith('_start_'), "Didn't begin with '_start_'")
+        self.validator = CustomElementValidation(lambda s: s.startswith('_start_'),
+                                                 "Didn't begin with '_start_'")
 
     def test_valid_inputs(self):
-        self.validate_and_compare(['_start_sdiyhsd', '_start_234fpwunxc\n'], True, 'did not accept valid inputs')
+        self.validate_and_compare(['_start_sdiyhsd', '_start_234fpwunxc\n'], True,
+                                  'did not accept valid inputs')
 
     def test_invalid_inputs(self):
         self.validate_and_compare(['fail', '324wfp9ni'], False, 'accepted invalid inputs')
@@ -528,7 +535,8 @@ class Or(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation('pass')
+        self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation(
+            'pass')
 
     def test_valid_items(self):
         self.validate_and_compare(
@@ -571,7 +579,8 @@ class CustomMessage(ValidationTestBase):
                     3
                 ]
         ), Column('')):
-            self.assertNotRegex(error.message, self.message, 'Validator not using the default warning message!')
+            self.assertNotRegex(error.message, self.message,
+                                'Validator not using the default warning message!')
 
     def test_custom_message(self):
         validator = InRangeValidation(min=4, message=self.message)
@@ -582,15 +591,34 @@ class CustomMessage(ValidationTestBase):
                     3
                 ]
         ), Column('')):
-            self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
+            self.assertRegex(error.message, self.message,
+                             'Validator not using the custom warning message!')
 
-    def test_validating_empty_range_value(self):
-        validator = InRangeValidation(min=4, message=self.message)
-        for error in validator.get_errors(pd.Series(
-                [
-                    1,
-                    None,
-                    3
-                ]
-        ), Column('', allow_empty=True)):
-            self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
+
+class GetErrorTests(ValidationTestBase):
+    def test_in_range_allow_empty_with_error(self):
+        validator = InRangeValidation(min=4)
+        vals = [1.0, None, 3.0]
+        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=True))
+        for error in errors:
+            self.assertEqual(f'{error.value} {error.message}',
+                             f'{vals[error.row]} was not in the range [4, inf)')
+        self.assertEqual(len(errors), sum(v is not None for v in vals))
+
+    def test_in_range_allow_empty_with_no_error(self):
+        validator = InRangeValidation(min=0)
+        vals = [1.0, None, 3.0]
+        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=True))
+        self.assertEqual(len(errors), 0)
+
+    def test_in_range_allow_empty_false_with_error(self):
+        validator = InRangeValidation(min=4)
+        vals = [1.0, None, 3.0]
+        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=False))
+        for error in errors:
+            # account for the validation returning 'nan' vs the series value being 'None'
+            error_value = vals[error.row] if vals[error.row] is not None else nan
+            self.assertEqual(
+                f'{error.value} {error.message}',
+                f'{error_value} was not in the range [4, inf)')
+        self.assertEqual(len(errors), len(vals))
