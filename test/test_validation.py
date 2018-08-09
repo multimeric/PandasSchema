@@ -588,26 +588,24 @@ class CustomMessage(ValidationTestBase):
 
 
 class GetErrorTests(ValidationTestBase):
+    """
+    Tests for float valued columns where allow_empty=True
+    """
+
+    def setUp(self):
+        self.vals = [1.0, None, 3]
+
     def test_in_range_allow_empty_with_error(self):
         validator = InRangeValidation(min=4)
-        vals = [1.0, None, 3.0]
-        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=True))
-        for error in errors:
-            self.assertEqual(f'{error.value} {error.message}', f'{vals[error.row]} was not in the range [4, inf)')
-        self.assertEqual(len(errors), sum(v is not None for v in vals))
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
+        self.assertEqual(len(errors), sum(v is not None for v in self.vals))
 
     def test_in_range_allow_empty_with_no_error(self):
         validator = InRangeValidation(min=0)
-        vals = [1.0, None, 3.0]
-        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=True))
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
         self.assertEqual(len(errors), 0)
 
     def test_in_range_allow_empty_false_with_error(self):
         validator = InRangeValidation(min=4)
-        vals = [1.0, None, 3.0]
-        errors = validator.get_errors(pd.Series(vals), Column('', allow_empty=False))
-        for error in errors:
-            # account for the validation returning 'nan' vs the series value being 'None'
-            error_value = vals[error.row] if vals[error.row] is not None else nan
-            self.assertEqual(f'{error.value} {error.message}', f'{error_value} was not in the range [4, inf)')
-        self.assertEqual(len(errors), len(vals))
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=False))
+        self.assertEqual(len(errors), len(self.vals))
