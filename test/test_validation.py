@@ -2,6 +2,8 @@ import json
 import unittest
 import re
 
+from numpy import nan
+
 from pandas_schema import Column
 from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import *
@@ -583,3 +585,27 @@ class CustomMessage(ValidationTestBase):
                 ]
         ), Column('')):
             self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
+
+
+class GetErrorTests(ValidationTestBase):
+    """
+    Tests for float valued columns where allow_empty=True
+    """
+
+    def setUp(self):
+        self.vals = [1.0, None, 3]
+
+    def test_in_range_allow_empty_with_error(self):
+        validator = InRangeValidation(min=4)
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
+        self.assertEqual(len(errors), sum(v is not None for v in self.vals))
+
+    def test_in_range_allow_empty_with_no_error(self):
+        validator = InRangeValidation(min=0)
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
+        self.assertEqual(len(errors), 0)
+
+    def test_in_range_allow_empty_false_with_error(self):
+        validator = InRangeValidation(min=4)
+        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=False))
+        self.assertEqual(len(errors), len(self.vals))
