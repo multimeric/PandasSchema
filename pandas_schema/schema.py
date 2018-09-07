@@ -29,12 +29,14 @@ class Schema:
         self.columns = list(columns)
         self.ordered = ordered
 
-    def validate(self, df: pd.DataFrame, columns: typing.List[str] = None) -> typing.List[ValidationWarning]:
+    def validate(self, df: pd.DataFrame, columns: typing.List[str] = None, allow_sub_schema: bool = False) -> \
+    typing.List[ValidationWarning]:
         """
         Runs a full validation of the target DataFrame using the internal columns list
 
         :param df: A pandas DataFrame to validate
         :param columns: A list of columns indicating a subset of the schema that we want to validate
+        :param allow_sub_schema: Allow to check sub schema
         :return: A list of ValidationWarning objects that list the ways in which the DataFrame was invalid
         """
         errors = []
@@ -44,7 +46,7 @@ class Schema:
         if columns is None:
             schema_cols = len(self.columns)
             columns_to_pair = self.columns
-            if df_cols != schema_cols:
+            if df_cols != schema_cols and not allow_sub_schema:
                 errors.append(
                     ValidationWarning(
                         'Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(
