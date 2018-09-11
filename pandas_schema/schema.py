@@ -84,7 +84,7 @@ class Schema:
         for series, column in column_pairs:
             errors += column.validate(series)
 
-        return sorted(errors, key=lambda e: e.row)
+        return sorted(errors, key=lambda e: e.row or 0)
 
     def get_column_names(self):
         """

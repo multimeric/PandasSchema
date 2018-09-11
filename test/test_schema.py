@@ -1,9 +1,10 @@
 from io import StringIO
 import unittest
 import pandas as pd
+from numpy.core.multiarray import dtype
 
 from pandas_schema import Schema, Column
-from pandas_schema.validation import LeadingWhitespaceValidation
+from pandas_schema.validation import LeadingWhitespaceValidation, IsDtypeValidation
 from pandas_schema.errors import PanSchArgumentError
 
 class UnorderedSchema(unittest.TestCase):
@@ -34,17 +35,17 @@ class UnorderedSchema(unittest.TestCase):
 
     def test_mixed_columns(self):
         """
-        Tests that when ordered=False, the schema columns are 
+        Tests that when ordered=False, the schema columns are
         associated with data frame columns by name, not position.
         In this case, the schema's column order is [a, b], while
          the data frame's order is [b, a]. There is an error in
-        column b in the data frame (leading whitespace), and a 
+        column b in the data frame (leading whitespace), and a
         validation on column b in the schema.
 
         Schema         a                b (validation)
         Data Frame     b (error)        a
 
-        Thus there will only be an error if column b in the schema 
+        Thus there will only be an error if column b in the schema
         is linked to column b in the data frame, as is correct
         behaviour.
         """
@@ -72,7 +73,7 @@ b,a
         column* is not being passed
 
         Thus there will only be an error if column b in the schema
-        is linked to column b in the data frame, as is correct 
+        is linked to column b in the data frame, as is correct
         behaviour
         """
 
@@ -89,7 +90,33 @@ b,a
         self.assertEqual(results[0].row, 0)
         self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by name')
 
-        
+    def test_dtype_validation(self):
+        """
+        Using a schema with dtype validation, we can validate, and get contextual error messages
+        """
+        df = pd.DataFrame(data={
+            'wrong_dtype1': ['not_an_int'],
+            'wrong_dtype2': [123],
+            'wrong_dtype3': [12.5]
+        })
+
+        schema = Schema([
+            Column('wrong_dtype1', [IsDtypeValidation(dtype('int64'))]),
+            Column('wrong_dtype2', [IsDtypeValidation(dtype('float64'))]),
+            Column('wrong_dtype3', [IsDtypeValidation(dtype('int64'))]),
+        ])
+
+        errors = schema.validate(df)
+
+        self.assertEqual(
+            sorted([str(x) for x in errors]),
+            sorted([
+                'The column wrong_dtype1 has a dtype of object which is not a subclass of the required type int64',
+                'The column wrong_dtype2 has a dtype of int64 which is not a subclass of the required type float64',
+                'The column wrong_dtype3 has a dtype of float64 which is not a subclass of the required type int64'
+            ])
+        )
+
     def test_column_subset_detect_empty(self):
         """
         Tests that when ordered=False, validation is possible by
@@ -102,7 +129,7 @@ b,a
 
         There will be an error if other than zero errors are found.
         """
-        
+
         df = pd.read_csv(StringIO('''
 b,a
  1,1
@@ -120,7 +147,7 @@ b,a
         passing a subset of the columns contained in the schema
 
         Schema         a                b (validation)
-        Data Frame     b (error)        a 
+        Data Frame     b (error)        a
 
         There will be an error if a column different than 'a' or 'b' is passed
         """
@@ -131,7 +158,7 @@ b,a
 2,3
 3,3
         '''), sep=',', header=0, dtype=str)
-        
+
         # should raise a PanSchArgumentError
         self.assertRaises(PanSchArgumentError, self.schema.validate, df, columns=['c'])
 
