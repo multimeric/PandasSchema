@@ -364,7 +364,7 @@ class InListValidation(_SeriesValidation):
     Checks that each element in this column is contained within a list of possibilities
     """
 
-    def __init__(self, options: typing.Iterable, case_sensitive: bool = True, ignore_nas = False, **kwargs):
+    def __init__(self, options: typing.Iterable, case_sensitive: bool = True, ignore_nas: bool = False, **kwargs):
         """
         :param options: A list of values to check. If the value of a cell is in this list, it is considered to pass the
             validation
