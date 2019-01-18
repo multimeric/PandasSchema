@@ -46,8 +46,8 @@ class Schema:
             columns_to_pair = self.columns
             if df_cols != schema_cols:
 
-                schema_columns = self.get_column_names()
-                df_columns = df.columns
+                schema_columns = set(self.get_column_names())
+                df_columns = set(df.columns)
 
                 add_schema_columns = [col for col in schema_columns if col not in df_columns]
                 add_df_columns = [col for col in df_columns if col not in schema_columns]
