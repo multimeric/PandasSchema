@@ -140,6 +140,6 @@ To install PandasSchema's development requirements, run
 
 The setup.py can be run as an executable, and it provides the following extra commands:
 
-* `./setup.py test`: runs the tests
-* `./setup.py build_readme`: rebuilds the `README.rst` from `doc/readme/README.rst`
-* `./setup.py build_site --dir=<dir>`: builds the documentation website from `doc/site/index.rst` into `<dir>`
+* :code:`./setup.py test`: runs the tests
+* :code:`./setup.py build_readme`: rebuilds the ``README.rst`` from ``doc/readme/README.rst``
+* :code:`./setup.py build_site --dir=<dir>`: builds the documentation website from ``doc/site/index.rst`` into ``<dir>``
