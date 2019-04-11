@@ -1,5 +1,9 @@
 PandasSchema
 ------------
+
+.. image:: https://travis-ci.org/TMiguelT/PandasSchema.svg?branch=master
+    :target: https://travis-ci.org/TMiguelT/PandasSchema
+
 .. contents::
 
 Introduction
