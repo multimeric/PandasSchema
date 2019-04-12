@@ -375,7 +375,7 @@ class InListValidation(_SeriesValidation):
 
     @property
     def default_message(self):
-        values = ','.join(str(v) for v in self.options)
+        values = ', '.join(str(v) for v in self.options)
         return 'is not in the list of legal options ({})'.format(values)
 
     def validate(self, series: pd.Series) -> pd.Series:
