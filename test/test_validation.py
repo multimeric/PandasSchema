@@ -2,9 +2,9 @@ import json
 import unittest
 import re
 
-from numpy import nan
+from numpy import nan, dtype
 
-from pandas_schema import Column
+from pandas_schema import Column, Schema
 from pandas_schema.validation import _BaseValidation
 from pandas_schema.validation import *
 from pandas_schema import ValidationWarning
@@ -491,6 +491,36 @@ class Dtype(ValidationTestBase):
 
         self.assertEqual(len(errors), 1)
         self.assertEqual(type(errors[0]), ValidationWarning)
+
+
+    def test_schema(self):
+        """
+        Test this validation inside a schema, to ensure we get helpful error messages.
+        In particular, we want to make sure that a ValidationWarning without a row number won't break the schema
+        """
+        df = pd.DataFrame(data={
+            'wrong_dtype1': ['not_an_int'],
+            'wrong_dtype2': [123],
+            'wrong_dtype3': [12.5]
+        })
+
+        schema = Schema([
+            Column('wrong_dtype1', [IsDtypeValidation(dtype('int64'))]),
+            Column('wrong_dtype2', [IsDtypeValidation(dtype('float64'))]),
+            Column('wrong_dtype3', [IsDtypeValidation(dtype('int64'))]),
+        ])
+
+        errors = schema.validate(df)
+
+        self.assertEqual(
+            sorted([str(x) for x in errors]),
+            sorted([
+                'The column wrong_dtype1 has a dtype of object which is not a subclass of the required type int64',
+                'The column wrong_dtype2 has a dtype of int64 which is not a subclass of the required type float64',
+                'The column wrong_dtype3 has a dtype of float64 which is not a subclass of the required type int64'
+            ])
+        )
+
 
 
 class Negate(ValidationTestBase):

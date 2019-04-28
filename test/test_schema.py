@@ -90,33 +90,6 @@ b,a
         self.assertEqual(results[0].row, 0)
         self.assertEqual(results[0].column, 'b', 'The Schema object is not associating columns and column schemas by name')
 
-    def test_dtype_validation(self):
-        """
-        Using a schema with dtype validation, we can validate, and get contextual error messages
-        """
-        df = pd.DataFrame(data={
-            'wrong_dtype1': ['not_an_int'],
-            'wrong_dtype2': [123],
-            'wrong_dtype3': [12.5]
-        })
-
-        schema = Schema([
-            Column('wrong_dtype1', [IsDtypeValidation(dtype('int64'))]),
-            Column('wrong_dtype2', [IsDtypeValidation(dtype('float64'))]),
-            Column('wrong_dtype3', [IsDtypeValidation(dtype('int64'))]),
-        ])
-
-        errors = schema.validate(df)
-
-        self.assertEqual(
-            sorted([str(x) for x in errors]),
-            sorted([
-                'The column wrong_dtype1 has a dtype of object which is not a subclass of the required type int64',
-                'The column wrong_dtype2 has a dtype of int64 which is not a subclass of the required type float64',
-                'The column wrong_dtype3 has a dtype of float64 which is not a subclass of the required type int64'
-            ])
-        )
-
     def test_column_subset_detect_empty(self):
         """
         Tests that when ordered=False, validation is possible by
