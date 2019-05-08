@@ -15,9 +15,10 @@ class ValidationTestBase(unittest.TestCase):
         if not s1.equals(s2):
             raise self.failureException(msg)
 
-    def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
+    def validate_and_compare(self, series: list, expected_result: bool, msg: str = None, series_dtype: object = None):
         """
         Checks that every element in the provided series is equal to `expected_result` after validation
+        :param series_dtype: Explicity specifies the dtype for the generated Series
         :param series: The series to check
         :param expected_result: Whether the elements in this series should pass the validation
         :param msg: The message to display if this test fails
@@ -31,7 +32,7 @@ class ValidationTestBase(unittest.TestCase):
         self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
 
         # Convert the input list to a series and validate it
-        results = self.validator.validate(pd.Series(series))
+        results = self.validator.validate(pd.Series(series, dtype=series_dtype))
 
         # Now find any items where their validation does not correspond to the expected_result
         for item, result in zip(series, results):
@@ -639,3 +640,32 @@ class GetErrorTests(ValidationTestBase):
         validator = InRangeValidation(min=4)
         errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=False))
         self.assertEqual(len(errors), len(self.vals))
+
+
+class PandasDtypeTests(ValidationTestBase):
+    """
+    Tests Series with various pandas dtypes that don't exist in numpy (specifically categories)
+    """
+
+    def setUp(self):
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False)
+
+    def test_valid_elements(self):
+        errors = self.validator.get_errors(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'),
+                                           Column('', allow_empty=True))
+        self.assertEqual(len(errors), 0)
+
+    def test_invalid_empty_elements(self):
+        errors = self.validator.get_errors(pd.Series(['aa', 'bb', 'd', None], dtype='category'),
+                                           Column('', allow_empty=False))
+        self.assertEqual(len(errors), 4)
+
+    def test_invalid_and_empty_elements(self):
+        errors = self.validator.get_errors(pd.Series(['a', None], dtype='category'),
+                                           Column('', allow_empty=False))
+        self.assertEqual(len(errors), 1)
+
+    def test_invalid_elements(self):
+        errors = self.validator.get_errors(pd.Series(['aa', 'bb', 'd'], dtype='category'),
+                                           Column('', allow_empty=True))
+        self.assertEqual(len(errors), 3)
