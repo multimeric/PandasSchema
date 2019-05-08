@@ -87,7 +87,7 @@ class _SeriesValidation(_BaseValidation):
             # Failing results are those that are not empty, and fail the validation
             # explicitly check to make sure the series isn't a category because issubdtype will FAIL if it is
             if is_categorical_dtype(series) or is_numeric_dtype(series):
-                validated = ~series.isna() & simple_validation
+                validated = ~series.isnull() & simple_validation
             else:
                 validated = (series.str.len() > 0) & simple_validation
 
