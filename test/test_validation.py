@@ -18,7 +18,7 @@ class ValidationTestBase(unittest.TestCase):
     def validate_and_compare(self, series: list, expected_result: bool, msg: str = None, series_dtype: object = None):
         """
         Checks that every element in the provided series is equal to `expected_result` after validation
-        :param series_dtype: to provide an explicity series dtype
+        :param series_dtype: Explicity specifies the dtype for the generated Series
         :param series: The series to check
         :param expected_result: Whether the elements in this series should pass the validation
         :param msg: The message to display if this test fails
@@ -644,7 +644,7 @@ class GetErrorTests(ValidationTestBase):
 
 class PandasDtypeTests(ValidationTestBase):
     """
-    tests Series with various pandas dtypes that don't exist in numpy (like category specifically)
+    Tests Series with various pandas dtypes that don't exist in numpy (specifically categories)
     """
 
     def setUp(self):
