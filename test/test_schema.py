@@ -7,6 +7,7 @@ from pandas_schema import Schema, Column
 from pandas_schema.validation import LeadingWhitespaceValidation, IsDtypeValidation
 from pandas_schema.errors import PanSchArgumentError
 
+
 class UnorderedSchema(unittest.TestCase):
     schema = Schema([
         Column('a'),
