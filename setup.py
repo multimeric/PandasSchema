@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-
-# Always prefer setuptools over distutils
+import distutils
 import os
 import subprocess
+from pathlib import Path
 
 from setuptools import setup, find_packages
-import distutils
-from pathlib import Path
+
+from pandas_schema import __version__
 
 here = Path(__file__).parent
 readme = (here / 'README.rst')
@@ -61,7 +61,7 @@ class BuildHtmlDocs(distutils.cmd.Command):
 
 setup(
     name='pandas_schema',
-    version='0.3.2',
+    version=__version__,
     description='A validation library for Pandas data frames using user-friendly schemas',
     long_description=long_description,
     url='https://github.com/TMiguelT/PandasSchema',
