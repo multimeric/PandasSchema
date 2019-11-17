@@ -10,6 +10,12 @@ class PanSchInvalidSchemaError(PanSchError):
     """
 
 
+class PanSchNoIndexError(PanSchInvalidSchemaError):
+    """
+    A validation was provided that has not specified an index
+    """
+
+
 class PanSchArgumentError(PanSchError):
     """
     An argument passed to a function has an invalid type or value

@@ -11,7 +11,7 @@ class Schema:
     A schema that defines the columns required in the target DataFrame
     """
 
-    def __init__(self, columns: typing.Iterable[Column], ordered: bool = False):
+    def __init__(self, columns: typing.Iterable[Column],  ordered: bool = False):
         """
         :param columns: A list of column objects
         :param ordered: True if the Schema should associate its Columns with DataFrame columns by position only, ignoring
