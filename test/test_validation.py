@@ -3,10 +3,10 @@ import unittest
 import re
 
 from numpy import nan, dtype
+import pandas as pd
 
-from pandas_schema import Column, Schema
-from pandas_schema.validation import _BaseValidation
-from pandas_schema.validation import *
+from pandas_schema.validations import InRangeValidation
+from pandas_schema.core import _BaseValidation
 from pandas_schema import ValidationWarning
 
 
@@ -32,7 +32,7 @@ class ValidationTestBase(unittest.TestCase):
         self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
 
         # Convert the input list to a series and validate it
-        results = self.validator.validate(pd.Series(series, dtype=series_dtype))
+        results = self.validator.validate_series(pd.Series(series, dtype=series_dtype))
 
         # Now find any items where their validation does not correspond to the expected_result
         for item, result in zip(series, results):

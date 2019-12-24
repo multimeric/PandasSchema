@@ -1,12 +1,11 @@
 import typing
 import pandas as pd
 
-from . import validation
+import pandas_schema.core
 from .validation_warning import ValidationWarning
 
-
 def _column(
-        validations: typing.Iterable[validation.IndexSeriesValidation],
+        validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
         index: typing.Union[int, str] = None,
         position: bool = False
 ):
@@ -21,9 +20,8 @@ def _column(
         valid.index = index
         valid.position = position
 
-
 def label_column(
-        validations: typing.Iterable[validation.IndexSeriesValidation],
+        validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
         index: typing.Union[int, str],
 ):
     """
@@ -37,9 +35,8 @@ def label_column(
         position=False
     )
 
-
 def positional_column(
-        validations: typing.Iterable[validation.IndexSeriesValidation],
+        validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
         index: int,
 ):
     """

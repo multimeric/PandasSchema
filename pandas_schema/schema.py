@@ -3,7 +3,6 @@ import typing
 
 from .errors import PanSchInvalidSchemaError, PanSchArgumentError
 from .validation_warning import ValidationWarning
-from .column import Column
 
 
 class Schema:
