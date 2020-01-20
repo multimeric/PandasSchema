@@ -1,3 +1,6 @@
+"""
+Tests for pandas_schema.validations
+"""
 import json
 import unittest
 import re
@@ -5,8 +8,8 @@ import re
 from numpy import nan, dtype
 import pandas as pd
 
-from pandas_schema.validations import InRangeValidation
-from pandas_schema.core import _BaseValidation
+from pandas_schema.validations import *
+from pandas_schema.core import BooleanSeriesValidation
 from pandas_schema import ValidationWarning
 
 
@@ -15,24 +18,24 @@ class ValidationTestBase(unittest.TestCase):
         if not s1.equals(s2):
             raise self.failureException(msg)
 
-    def validate_and_compare(self, series: list, expected_result: bool, msg: str = None, series_dtype: object = None):
+    def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
         """
         Checks that every element in the provided series is equal to `expected_result` after validation
-        :param series_dtype: Explicity specifies the dtype for the generated Series
+        :param series_dtype: Explicitly specifies the dtype for the generated Series
         :param series: The series to check
         :param expected_result: Whether the elements in this series should pass the validation
         :param msg: The message to display if this test fails
         """
 
         # Check that self.validator is correct
-        if not self.validator or not isinstance(self.validator, _BaseValidation):
+        if not self.validator or not isinstance(self.validator, BooleanSeriesValidation):
             raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
 
         # Ensure we're comparing series correctly
         self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
 
         # Convert the input list to a series and validate it
-        results = self.validator.validate_series(pd.Series(series, dtype=series_dtype))
+        results = self.validator.select_cells(pd.Series(series))
 
         # Now find any items where their validation does not correspond to the expected_result
         for item, result in zip(series, results):
