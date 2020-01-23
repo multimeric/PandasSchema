@@ -1,32 +1,61 @@
-from .core import SeriesValidation, IndexSeriesValidation, BooleanSeriesValidation
-from .validation_warning import ValidationWarning
-from .errors import PanSchError, PanSchArgumentError
-import numpy as np
-import pandas as pd
+import abc
 import math
-import typing
 import datetime
+import pandas as pd
+import numpy as np
+import typing
+import operator
+
+from . import column
+from .core import IndexSeriesValidation, BooleanSeriesValidation
+from .validation_warning import ValidationWarning
+from .errors import PanSchArgumentError
+from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
-class IsDtypeValidation(IndexSeriesValidation):
+class CustomSeriesValidation(BooleanSeriesValidation):
     """
-    Checks that a series has a certain numpy dtype
+    Validates using a user-provided function that operates on an entire series (for example by using one of the pandas
+    Series methods: http://pandas.pydata.org/pandas-docs/stable/api.html#series)
     """
 
-    def __init__(self, dtype: np.dtype, **kwargs):
+    def __init__(self, validation: typing.Callable[[pd.Series], pd.Series], message: str):
         """
-        :param dtype: The numpy dtype to check the column against
+        :param message: The error message to provide to the user if this validation fails. The row and column and
+            failing value will automatically be prepended to this message, so you only have to provide a message that
+            describes what went wrong, for example 'failed my validation' will become
+
+            {row: 1, column: "Column Name"}: "Value" failed my validation
+        :param validation: A function that takes a pandas Series and returns a boolean Series, where each cell is equal
+            to True if the object passed validation, and False if it failed
         """
-        self.dtype = dtype
-        super().__init__(**kwargs)
+        self._validation = validation
+        super().__init__(message=message)
 
-    @property
-    def default_message(self):
-        return 'did not have the dtype "{}"'.format(self.dtype.name)
+    def select_cells(self, series: pd.Series) -> pd.Series:
+        return self._validation(series)
 
-    def validate_series(self, series: pd.Series):
-        if not series.dtype == self.dtype:
-            return [self.Warning(self, self.message, series, self.index, self.positional)]
+
+class CustomElementValidation(BooleanSeriesValidation):
+    """
+    Validates using a user-provided function that operates on each element
+    """
+
+    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any], message: str):
+        """
+        :param message: The error message to provide to the user if this validation fails. The row and column and
+            failing value will automatically be prepended to this message, so you only have to provide a message that
+            describes what went wrong, for example 'failed my validation' will become
+
+            {row: 1, column: "Column Name"}: "Value" failed my validation
+        :param validation: A function that takes the value of a data frame cell and returns True if it passes the
+            the validation, and false if it doesn't
+        """
+        self._validation = validation
+        super().__init__(message=message)
+
+    def select_cells(self, series: pd.Series) -> pd.Series:
+        return series.apply(self._validation)
 
 
 class InRangeValidation(BooleanSeriesValidation):
@@ -43,22 +72,42 @@ class InRangeValidation(BooleanSeriesValidation):
         self.max = max
         super().__init__(**kwargs)
 
+    @property
+    def default_message(self):
+        return 'was not in the range [{}, {})'.format(self.min, self.max)
+
     def select_cells(self, series: pd.Series) -> pd.Series:
         series = pd.to_numeric(series)
         return (series >= self.min) & (series < self.max)
 
-    @property
-    def default_message(self):
-        return 'was not in the range [{}, {})'.format(self.min, self.max)
+
+class IsDtypeValidation(IndexSeriesValidation):
+    """
+    Checks that a series has a certain numpy dtype
+    """
+
+    def __init__(self, dtype: np.dtype, **kwargs):
+        """
+        :param dtype: The numpy dtype to check the column against
+        """
+        self.dtype = dtype
+        super().__init__(**kwargs)
+
+    def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
+        if not np.issubdtype(series.dtype, self.dtype):
+            return [ValidationWarning(
+                'The column {} has a dtype of {} which is not a subclass of the required type {}'.format(
+                    column.name if column else '', series.dtype, self.dtype
+                )
+            )]
+        else:
+            return []
 
 
 class CanCallValidation(BooleanSeriesValidation):
     """
     Validates if a given function can be called on each element in a column without raising an exception
     """
-
-    def select_cells(self, series: pd.Series) -> pd.Series:
-        return series.apply(self.can_call)
 
     def __init__(self, func: typing.Callable, **kwargs):
         """
@@ -81,6 +130,9 @@ class CanCallValidation(BooleanSeriesValidation):
             return True
         except:
             return False
+
+    def select_cells(self, series: pd.Series) -> pd.Series:
+        return series.apply(self.can_call)
 
 
 class CanConvertValidation(CanCallValidation):

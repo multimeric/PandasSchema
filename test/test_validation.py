@@ -390,7 +390,7 @@ class IsDistinct(ValidationTestBase):
         )
 
     def test_invalid_strings(self):
-        validation = self.validator.validate(pd.Series([
+        validation = self.validator.select_cells(pd.Series([
             '1',
             '1',
             '3',
@@ -476,7 +476,7 @@ class Dtype(ValidationTestBase):
         self.validator = IsDtypeValidation(np.number)
 
     def test_valid_items(self):
-        errors = self.validator.get_errors(pd.Series(
+        errors = self.validator.validate_series(pd.Series(
             [
                 1,
                 2,
@@ -486,7 +486,7 @@ class Dtype(ValidationTestBase):
         self.assertEqual(len(errors), 0)
 
     def test_invalid_items(self):
-        errors = self.validator.get_errors(pd.Series(
+        errors = self.validator.validate_series(pd.Series(
             [
                 'a',
                 '',
@@ -600,7 +600,7 @@ class CustomMessage(ValidationTestBase):
 
     def test_default_message(self):
         validator = InRangeValidation(min=4)
-        for error in validator.get_errors(pd.Series(
+        for error in validator.validate_series(pd.Series(
                 [
                     1,
                     2,
@@ -611,7 +611,7 @@ class CustomMessage(ValidationTestBase):
 
     def test_custom_message(self):
         validator = InRangeValidation(min=4, message=self.message)
-        for error in validator.get_errors(pd.Series(
+        for error in validator.validate_series(pd.Series(
                 [
                     1,
                     2,
@@ -631,17 +631,17 @@ class GetErrorTests(ValidationTestBase):
 
     def test_in_range_allow_empty_with_error(self):
         validator = InRangeValidation(min=4)
-        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
+        errors = validator.validate_series(pd.Series(self.vals), Column('', allow_empty=True))
         self.assertEqual(len(errors), sum(v is not None for v in self.vals))
 
     def test_in_range_allow_empty_with_no_error(self):
         validator = InRangeValidation(min=0)
-        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=True))
+        errors = validator.validate_series(pd.Series(self.vals), Column('', allow_empty=True))
         self.assertEqual(len(errors), 0)
 
     def test_in_range_allow_empty_false_with_error(self):
         validator = InRangeValidation(min=4)
-        errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=False))
+        errors = validator.validate_series(pd.Series(self.vals), Column('', allow_empty=False))
         self.assertEqual(len(errors), len(self.vals))
 
 
@@ -654,21 +654,21 @@ class PandasDtypeTests(ValidationTestBase):
         self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False)
 
     def test_valid_elements(self):
-        errors = self.validator.get_errors(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'),
+        errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'),
                                            Column('', allow_empty=True))
         self.assertEqual(len(errors), 0)
 
     def test_invalid_empty_elements(self):
-        errors = self.validator.get_errors(pd.Series(['aa', 'bb', 'd', None], dtype='category'),
+        errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd', None], dtype='category'),
                                            Column('', allow_empty=False))
         self.assertEqual(len(errors), 4)
 
     def test_invalid_and_empty_elements(self):
-        errors = self.validator.get_errors(pd.Series(['a', None], dtype='category'),
+        errors = self.validator.validate_series(pd.Series(['a', None], dtype='category'),
                                            Column('', allow_empty=False))
         self.assertEqual(len(errors), 1)
 
     def test_invalid_elements(self):
-        errors = self.validator.get_errors(pd.Series(['aa', 'bb', 'd'], dtype='category'),
+        errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd'], dtype='category'),
                                            Column('', allow_empty=True))
         self.assertEqual(len(errors), 3)
