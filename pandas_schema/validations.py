@@ -85,13 +85,15 @@ class IsDtypeValidation(IndexSeriesValidation):
     """
     Checks that a series has a certain numpy dtype
     """
-
     def __init__(self, dtype: np.dtype, **kwargs):
         """
         :param dtype: The numpy dtype to check the column against
         """
         self.dtype = dtype
         super().__init__(**kwargs)
+
+    def default_message(self) -> str:
+        return 'has a dtype of {} which is not a subclass of the required type {}'.format(self.dtype,)
 
     def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
         if not np.issubdtype(series.dtype, self.dtype):

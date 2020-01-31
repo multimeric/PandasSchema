@@ -6,6 +6,7 @@ import numpy as np
 import typing
 import operator
 import re
+from dataclasses import dataclass
 
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
@@ -25,21 +26,23 @@ class BaseValidation(abc.ABC):
         :return: All validation failures detected by this validation
         """
 
+    def message(self, **kwargs) -> str:
+        pass
+
+    @dataclass
     class Warning:
         """
         Represents a difference between the schema and data frame, found during the validation of the data frame
             Child classes can define their own subclass of :py:class:~pandas_schema.core.BaseValidation.Warning, but
             need only do that if the subclass needs to store additional data.
         """
-
-        def __init__(self, validation: 'BaseValidation', message: str):
-            self.message = message
+        validation: 'BaseValidation'
 
         def __str__(self) -> str:
             """
             The entire warning message as a string
             """
-            return self.message
+            return self.validation.message()
 
 
 class SeriesValidation(BaseValidation):
@@ -52,16 +55,7 @@ class SeriesValidation(BaseValidation):
         """
         Represents a difference between the schema and data frame, found during the validation of the data frame
         """
-
-        def __init__(self, validation: BaseValidation, message: str, series: pd.Series):
-            super().__init__(validation, message)
-            self.series = series
-
-        def __str__(self) -> str:
-            """
-            The entire warning message as a string
-            """
-            return '{} {}'.format(self.series.name, self.message)
+        series: pd.Series
 
     @abc.abstractmethod
     def select_series(self, df: pd.DataFrame) -> pd.Series:
@@ -89,17 +83,8 @@ class IndexSeriesValidation(SeriesValidation):
         """
         Represents a difference between the schema and data frame, found during the validation of the data frame
         """
-
-        def __init__(self, validation: BaseValidation, message: str, series: pd.Series, col_index, positional):
-            super().__init__(validation, message, series)
-            self.col_index = col_index
-            self.positional = positional
-
-        def __str__(self) -> str:
-            """
-            The entire warning message as a string
-            """
-            return 'Column {} {}'.format(self.col_index, self.message)
+        col_index: int
+        positional: bool
 
     def __init__(self, index: typing.Union[int, str] = None, positional: bool = False, message: str = None):
         """
@@ -113,24 +98,26 @@ class IndexSeriesValidation(SeriesValidation):
         self.custom_message = message
 
     @property
-    def message(self):
+    def message(self, **kwargs):
         """
         Gets a message describing how the DataFrame cell failed the validation
         This shouldn't really be overridden, instead override default_message so that users can still set per-object
         messages
         :return:
         """
-        return self.custom_message or self.default_message
+        if self.custom_message:
+            return self.custom_message()
+        else:
+            return self.default_message(**kwargs)
 
     @property
-    def readable_name(self):
+    def readable_name(self, **kwargs):
         """
         A readable name for this validation, to be shown in validation warnings
         """
         return type(self).__name__
 
-    @property
-    def default_message(self) -> str:
+    def default_message(self, **kwargs) -> str:
         """
         Create a message to be displayed whenever this validation fails
         This should be a generic message for the validation type, but can be overwritten if the user provides a
