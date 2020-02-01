@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
+from pandas_schema.validation_warning import ValidationWarning
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
@@ -19,43 +20,22 @@ class BaseValidation(abc.ABC):
     """
 
     @abc.abstractmethod
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[Warning]:
+    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
         """
         Validates a data frame
         :param df: Data frame to validate
         :return: All validation failures detected by this validation
         """
 
-    def message(self, **kwargs) -> str:
+    def message(self, warning: ValidationWarning) -> str:
         pass
-
-    @dataclass
-    class Warning:
-        """
-        Represents a difference between the schema and data frame, found during the validation of the data frame
-            Child classes can define their own subclass of :py:class:~pandas_schema.core.BaseValidation.Warning, but
-            need only do that if the subclass needs to store additional data.
-        """
-        validation: 'BaseValidation'
-
-        def __str__(self) -> str:
-            """
-            The entire warning message as a string
-            """
-            return self.validation.message()
 
 
 class SeriesValidation(BaseValidation):
     """
-    A _SeriesValidation validates a DataFrame by selecting a single series from it, and applying some validation
-    to it
+    A _SeriesValidation validates a DataFrame by selecting a single series from it, and
+    applying some validation to it
     """
-
-    class Warning(BaseValidation.Warning):
-        """
-        Represents a difference between the schema and data frame, found during the validation of the data frame
-        """
-        series: pd.Series
 
     @abc.abstractmethod
     def select_series(self, df: pd.DataFrame) -> pd.Series:
@@ -64,12 +44,12 @@ class SeriesValidation(BaseValidation):
         """
 
     @abc.abstractmethod
-    def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
+    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
         """
         Validate a single series
         """
 
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[Warning]:
+    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
         series = self.select_series(df)
         return self.validate_series(series)
 
@@ -79,14 +59,9 @@ class IndexSeriesValidation(SeriesValidation):
     Selects a series from the DataFrame, using label or position-based indexes that can be provided at instantiation
     or later
     """
-    class Warning(SeriesValidation.Warning):
-        """
-        Represents a difference between the schema and data frame, found during the validation of the data frame
-        """
-        col_index: int
-        positional: bool
 
-    def __init__(self, index: typing.Union[int, str] = None, positional: bool = False, message: str = None):
+    def __init__(self, index: typing.Union[int, str] = None, positional: bool = False,
+                 message: str = None):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
@@ -138,7 +113,7 @@ class IndexSeriesValidation(SeriesValidation):
             return df.loc[self.index]
 
     @abc.abstractmethod
-    def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
+    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
         pass
 
 
@@ -150,14 +125,6 @@ class BooleanSeriesValidation(IndexSeriesValidation):
         Child classes need not create their own :py:class:~pandas_schema.core.BooleanSeriesValidation.Warning subclass,
         because the data is in the same form for each cell. You need only define a :py:meth~default_message.
     """
-    class Warning(IndexSeriesValidation.Warning):
-        def __init__(self, validation: BaseValidation, message: str, series: pd.Series, col_index, positional, row_index, value):
-            super().__init__(validation, message, series, col_index, positional)
-            self.row_index = row_index
-            self.value = value
-
-        def __str__(self) -> str:
-            return '{{row: {}, column: "{}"}}: "{}" {}'.format(self.row_index, self.col_index, self.value, self.message)
 
     @abc.abstractmethod
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -168,9 +135,12 @@ class BooleanSeriesValidation(IndexSeriesValidation):
         """
         pass
 
-    def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
+    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
         indices = self.select_cells(series)
         cells = series[indices]
         return (
-            Warning(self, self.message, series, self.index, self.positional, row_idx, cell) for row_idx, cell in cells.items()
+            ValidationWarning(self, {
+                'row': row_idx,
+                'value': cell
+            }) for row_idx, cell in cells.items()
         )

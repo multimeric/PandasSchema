@@ -41,7 +41,8 @@ class CustomElementValidation(BooleanSeriesValidation):
     Validates using a user-provided function that operates on each element
     """
 
-    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any], message: str):
+    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any],
+                 message: str):
         """
         :param message: The error message to provide to the user if this validation fails. The row and column and
             failing value will automatically be prepended to this message, so you only have to provide a message that
@@ -85,22 +86,23 @@ class IsDtypeValidation(IndexSeriesValidation):
     """
     Checks that a series has a certain numpy dtype
     """
+
     def __init__(self, dtype: np.dtype, **kwargs):
         """
         :param dtype: The numpy dtype to check the column against
         """
-        self.dtype = dtype
         super().__init__(**kwargs)
+        self.dtype = dtype
 
-    def default_message(self) -> str:
-        return 'has a dtype of {} which is not a subclass of the required type {}'.format(self.dtype,)
+    def default_message(self, validation) -> str:
+        return 'has a dtype of {} which is not a subclass of the required type {}'.format(
+            self.dtype, validation.props['dtype'])
 
     def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
         if not np.issubdtype(series.dtype, self.dtype):
             return [ValidationWarning(
-                'The column {} has a dtype of {} which is not a subclass of the required type {}'.format(
-                    column.name if column else '', series.dtype, self.dtype
-                )
+                self,
+                {'dtype': series.dtype}
             )]
         else:
             return []
@@ -119,12 +121,15 @@ class CanCallValidation(BooleanSeriesValidation):
         if callable(type):
             self.callable = func
         else:
-            raise PanSchArgumentError('The object "{}" passed to CanCallValidation is not callable!'.format(type))
+            raise PanSchArgumentError(
+                'The object "{}" passed to CanCallValidation is not callable!'.format(
+                    type))
         super().__init__(**kwargs)
 
     @property
     def default_message(self):
-        return 'raised an exception when the callable {} was called on it'.format(self.callable)
+        return 'raised an exception when the callable {} was called on it'.format(
+            self.callable)
 
     def can_call(self, var):
         try:

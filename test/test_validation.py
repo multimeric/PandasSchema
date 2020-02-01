@@ -10,6 +10,7 @@ import pandas as pd
 
 from pandas_schema.validations import *
 from pandas_schema.core import BooleanSeriesValidation
+from pandas_schema.schema import Schema
 from pandas_schema import ValidationWarning
 
 
