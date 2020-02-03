@@ -1,7 +1,19 @@
-class PanSchError(BaseException):
+class PanSchError(Exception):
     """
     Base class for all pandas_schema exceptions
     """
+
+    def __init__(self, message=None):
+        super().__init__(message)
+
+
+class PanSchIndexError(PanSchError):
+    """
+    Some issue with creating a PandasIndexer
+    """
+
+    def __init__(self, message):
+        super().__init__(message=message)
 
 
 class PanSchInvalidSchemaError(PanSchError):

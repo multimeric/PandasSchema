@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
+from pandas_schema.index import PandasIndexer
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
@@ -60,30 +61,33 @@ class IndexSeriesValidation(SeriesValidation):
     or later
     """
 
-    def __init__(self, index: typing.Union[int, str] = None, positional: bool = False,
-                 message: str = None):
+    def __init__(self, index: PandasIndexer = None, message: str = None):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
-        :param positional: If true, the index is a position along the axis (ie, index=0 indicates the first element).
         Otherwise it's a label (ie, index=0) indicates the column with the label of 0
         """
         self.index = index
-        self.positional = positional
         self.custom_message = message
 
-    @property
-    def message(self, **kwargs):
+    def message(self, warning: ValidationWarning):
         """
         Gets a message describing how the DataFrame cell failed the validation
         This shouldn't really be overridden, instead override default_message so that users can still set per-object
         messages
         :return:
         """
-        if self.custom_message:
-            return self.custom_message()
+        if self.index.type == 'position':
+            prefix = self.index.index
         else:
-            return self.default_message(**kwargs)
+            prefix = '"{}"'.format(self.index.index)
+
+        if self.custom_message:
+            suffix = self.custom_message
+        else:
+            suffix = self.default_message(warning)
+
+        return "Column {} {}".format(prefix, suffix)
 
     @property
     def readable_name(self, **kwargs):
@@ -92,7 +96,7 @@ class IndexSeriesValidation(SeriesValidation):
         """
         return type(self).__name__
 
-    def default_message(self, **kwargs) -> str:
+    def default_message(self, warning: ValidationWarning) -> str:
         """
         Create a message to be displayed whenever this validation fails
         This should be a generic message for the validation type, but can be overwritten if the user provides a
@@ -107,10 +111,7 @@ class IndexSeriesValidation(SeriesValidation):
         if self.index is None:
             raise PanSchNoIndexError()
 
-        if self.positional:
-            return df.iloc[self.index]
-        else:
-            return df.loc[self.index]
+        return self.index(df)
 
     @abc.abstractmethod
     def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
@@ -136,8 +137,8 @@ class BooleanSeriesValidation(IndexSeriesValidation):
         pass
 
     def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
-        indices = self.select_cells(series)
-        cells = series[indices]
+        failed = ~self.select_cells(series)
+        cells = series[failed]
         return (
             ValidationWarning(self, {
                 'row': row_idx,

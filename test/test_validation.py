@@ -6,11 +6,14 @@ import unittest
 import re
 
 from numpy import nan, dtype
+import numpy as np
 import pandas as pd
 
 from pandas_schema.validations import *
 from pandas_schema.core import BooleanSeriesValidation
+from pandas_schema.index import ColumnIndexer as ci
 from pandas_schema.schema import Schema
+from pandas_schema.column import column, column_sequence
 from pandas_schema import ValidationWarning
 
 
@@ -510,20 +513,20 @@ class Dtype(ValidationTestBase):
         })
 
         schema = Schema([
-            Column('wrong_dtype1', [IsDtypeValidation(dtype('int64'))]),
-            Column('wrong_dtype2', [IsDtypeValidation(dtype('float64'))]),
-            Column('wrong_dtype3', [IsDtypeValidation(dtype('int64'))]),
+            IsDtypeValidation(dtype('int64'), index=ci('wrong_dtype1')),
+            IsDtypeValidation(dtype('float64'), index=ci('wrong_dtype2')),
+            IsDtypeValidation(dtype('int64'), index=ci('wrong_dtype3')),
         ])
 
         errors = schema.validate(df)
 
         self.assertEqual(
-            sorted([str(x) for x in errors]),
-            sorted([
-                'The column wrong_dtype1 has a dtype of object which is not a subclass of the required type int64',
-                'The column wrong_dtype2 has a dtype of int64 which is not a subclass of the required type float64',
-                'The column wrong_dtype3 has a dtype of float64 which is not a subclass of the required type int64'
-            ])
+            [x.props for x in errors],
+            [
+                {'dtype': np.object},
+                {'dtype': np.int64},
+                {'dtype': np.float64},
+            ]
         )
 
 
@@ -632,17 +635,17 @@ class GetErrorTests(ValidationTestBase):
 
     def test_in_range_allow_empty_with_error(self):
         validator = InRangeValidation(min=4)
-        errors = validator.validate_series(pd.Series(self.vals))
+        errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), sum(v is not None for v in self.vals))
 
     def test_in_range_allow_empty_with_no_error(self):
         validator = InRangeValidation(min=0)
-        errors = validator.validate_series(pd.Series(self.vals))
+        errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), 0)
 
     def test_in_range_allow_empty_false_with_error(self):
         validator = InRangeValidation(min=4)
-        errors = validator.validate_series(pd.Series(self.vals))
+        errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), len(self.vals))
 
 
@@ -656,16 +659,16 @@ class PandasDtypeTests(ValidationTestBase):
 
     def test_valid_elements(self):
         errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'))
-        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(list(errors)), 0)
 
     def test_invalid_empty_elements(self):
         errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd', None], dtype='category'))
-        self.assertEqual(len(errors), 4)
+        self.assertEqual(len(list(errors)), 4)
 
     def test_invalid_and_empty_elements(self):
         errors = self.validator.validate_series(pd.Series(['a', None], dtype='category'))
-        self.assertEqual(len(errors), 1)
+        self.assertEqual(len(list(errors)), 1)
 
     def test_invalid_elements(self):
         errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd'], dtype='category'))
-        self.assertEqual(len(errors), 3)
+        self.assertEqual(len(list(errors)), 3)

@@ -94,11 +94,11 @@ class IsDtypeValidation(IndexSeriesValidation):
         super().__init__(**kwargs)
         self.dtype = dtype
 
-    def default_message(self, validation) -> str:
+    def default_message(self, warning: ValidationWarning) -> str:
         return 'has a dtype of {} which is not a subclass of the required type {}'.format(
-            self.dtype, validation.props['dtype'])
+            self.dtype, warning.props['dtype'])
 
-    def validate_series(self, series: pd.Series) -> typing.Iterable[Warning]:
+    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
         if not np.issubdtype(series.dtype, self.dtype):
             return [ValidationWarning(
                 self,
@@ -126,8 +126,7 @@ class CanCallValidation(BooleanSeriesValidation):
                     type))
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'raised an exception when the callable {} was called on it'.format(
             self.callable)
 
@@ -162,8 +161,7 @@ class CanConvertValidation(CanCallValidation):
         else:
             raise PanSchArgumentError('{} is not a valid type'.format(_type))
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
@@ -182,8 +180,7 @@ class MatchesPatternValidation(BooleanSeriesValidation):
         self.options = options
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'does not match the pattern "{}"'.format(self.pattern)
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -198,8 +195,7 @@ class TrailingWhitespaceValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'contains trailing whitespace'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -214,8 +210,7 @@ class LeadingWhitespaceValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'contains leading whitespace'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -230,8 +225,7 @@ class IsDistinctValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'contains values that are not unique'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -252,8 +246,7 @@ class InListValidation(BooleanSeriesValidation):
         self.options = options
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         values = ', '.join(str(v) for v in self.options)
         return 'is not in the list of legal options ({})'.format(values)
 
@@ -278,8 +271,7 @@ class DateFormatValidation(BooleanSeriesValidation):
         self.date_format = date_format
         super().__init__(**kwargs)
 
-    @property
-    def default_message(self):
+    def default_message(self, warning: ValidationWarning):
         return 'does not match the date format string "{}"'.format(self.date_format)
 
     def valid_date(self, val):
