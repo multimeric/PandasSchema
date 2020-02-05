@@ -7,13 +7,15 @@ from pandas_schema.index import PandasIndexer
 def column(
         validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
         index: PandasIndexer = None,
-        override: bool = False
+        override: bool = False,
+        allow_empty=False
 ):
     """
     A utility method for setting the index data on a set of Validations
     :param validations: A list of validations to modify
     :param index: The index of the series that these validations will now consider
     :param override: If true, override existing index values. Otherwise keep the existing ones
+    :param allow_empty: Allow empty rows (NaN) to pass the validation
     See :py:class:`pandas_schema.validation.IndexSeriesValidation`
     """
     for valid in validations:

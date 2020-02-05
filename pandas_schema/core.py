@@ -34,7 +34,7 @@ class BaseValidation(abc.ABC):
 
 class SeriesValidation(BaseValidation):
     """
-    A _SeriesValidation validates a DataFrame by selecting a single series from it, and
+    A SeriesValidation validates a DataFrame by selecting a single series from it, and
     applying some validation to it
     """
 
@@ -145,3 +145,37 @@ class BooleanSeriesValidation(IndexSeriesValidation):
                 'value': cell
             }) for row_idx, cell in cells.items()
         )
+
+
+class CombinedValidation(BaseValidation):
+    """
+    Validates if one and/or the other validation is true for an element
+    """
+
+    def __init__(self, validation_a: BooleanSeriesValidation, validation_b: BooleanSeriesValidation, operator,
+                 message: str):
+        super().__init__(message=message)
+        self.operator = operator
+        self.v_a = validation_a
+        self.v_b = validation_b
+
+    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+        # Let both validations separately select and filter a column
+        left_series = self.v_a.select_series(df)
+        right_series = self.v_a.select_series(df)
+
+        left_failed = ~self.v_a.select_cells(left_series)
+        right_failed = ~self.v_b.select_cells(right_series)
+
+        # Then, we combine the two resulting boolean series, and determine the row indices of the result
+        failed = self.operator(left_failed, right_failed)
+
+        return (
+            ValidationWarning(self, {
+                'row': row_idx,
+            }) for row_idx in np.where(failed)
+        )
+
+    @property
+    def default_message(self):
+        return '({}) {} ({})'.format(self.v_a.message, self.operator, self.v_b.message)
