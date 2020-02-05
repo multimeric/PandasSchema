@@ -463,6 +463,27 @@ class InRange(ValidationTestBase):
             'Incorrectly accepts integers outside of the range'
         )
 
+    def test_valid_character_items(self):
+        self.validate_and_compare(
+            [
+                7,
+                "8",
+                8
+            ],
+            True,
+            "Does not accept integers provided as a string"
+        )
+
+    def test_invalid_character_items(self):
+        self.validate_and_compare(
+            [
+                "seven",
+                "eight",
+            ],
+            False,
+            "Incorrectly accepts items with non numerical text"
+        )
+
 
 class Dtype(ValidationTestBase):
     """
@@ -493,7 +514,6 @@ class Dtype(ValidationTestBase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(type(errors[0]), ValidationWarning)
 
-
     def test_schema(self):
         """
         Test this validation inside a schema, to ensure we get helpful error messages.
@@ -521,7 +541,6 @@ class Dtype(ValidationTestBase):
                 'The column wrong_dtype3 has a dtype of float64 which is not a subclass of the required type int64'
             ])
         )
-
 
 
 class Negate(ValidationTestBase):
