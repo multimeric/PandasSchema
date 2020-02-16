@@ -1,5 +1,9 @@
 PandasSchema
 ------------
+
+.. image:: https://travis-ci.org/TMiguelT/PandasSchema.svg?branch=master
+    :target: https://travis-ci.org/TMiguelT/PandasSchema
+
 .. contents::
 
 Introduction
@@ -125,6 +129,10 @@ a word, but it doesn't contain the letter 'a':
 Note that these operators do not short-circuit, so all validations will be applied to all rows, regardless of if that
 row has already failed a validation.
 
+Changelog
+---------
+.. include:: ./changelog.rst
+
 Development
 -----------
 
@@ -136,6 +144,6 @@ To install PandasSchema's development requirements, run
 
 The setup.py can be run as an executable, and it provides the following extra commands:
 
-* `./setup.py test`: runs the tests
-* `./setup.py build_readme`: rebuilds the `README.rst` from `doc/readme/README.rst`
-* `./setup.py build_site --dir=<dir>`: builds the documentation website from `doc/site/index.rst` into `<dir>`
+* :code:`./setup.py test`: runs the tests
+* :code:`./setup.py build_readme`: rebuilds the ``README.rst`` from ``doc/readme/README.rst``
+* :code:`./setup.py build_site --dir=<dir>`: builds the documentation website from ``doc/site/index.rst`` into ``<dir>``
