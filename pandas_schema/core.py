@@ -1,6 +1,7 @@
 import abc
 import math
 import datetime
+from itertools import chain
 import pandas as pd
 import numpy as np
 import typing
@@ -136,15 +137,36 @@ class BooleanSeriesValidation(IndexSeriesValidation):
         """
         pass
 
-    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
+    # def generate_warnings(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
+    #     """
+    #     Given a series that has been sliced down to only those that definitely failed, produce a list of
+    #     ValidationWarnings.
+    #     Note, this is different to validate_series, which actually calculates which rows have failed.
+    #     Having this as a separate method allows it to be accessed by the CombinedValidation
+    #
+    #     :param series: A series that has been sliced down to only those that definitely failed
+    #     """
+    #     return (
+    #         ValidationWarning(self, {
+    #             'row': row_idx,
+    #             'value': cell
+    #         }) for row_idx, cell in series.items()
+    #     )
+
+    def warning_series(self, series):
         failed = ~self.select_cells(series)
-        cells = series[failed]
-        return (
-            ValidationWarning(self, {
-                'row': row_idx,
-                'value': cell
-            }) for row_idx, cell in cells.items()
-        )
+
+        # Slice out the failed items, then map each into a list of validation warnings at each respective index
+        return series[failed].to_frame().apply(lambda row: [ValidationWarning(self, {
+                'row': row.name,
+                'value': row[0]
+            })], axis='columns')
+
+    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
+        warnings = self.warning_series(series)
+
+        # Remove the empty elements, split the list of warnings in each cell, and then compile that into a list
+        return warnings.dropna().explode().tolist()
 
 
 class CombinedValidation(BaseValidation):
@@ -156,25 +178,27 @@ class CombinedValidation(BaseValidation):
                  message: str):
         super().__init__(message=message)
         self.operator = operator
-        self.v_a = validation_a
-        self.v_b = validation_b
+        self.left = validation_a
+        self.right = validation_b
 
     def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
         # Let both validations separately select and filter a column
-        left_series = self.v_a.select_series(df)
-        right_series = self.v_a.select_series(df)
+        left_series = self.left.select_series(df)
+        right_series = self.right.select_series(df)
 
-        left_failed = ~self.v_a.select_cells(left_series)
-        right_failed = ~self.v_b.select_cells(right_series)
+        left_errors = self.left.warning_series(left_series)
+        right_errors = self.right.warning_series(right_series)
+
+        # TODO
 
         # Then, we combine the two resulting boolean series, and determine the row indices of the result
-        failed = self.operator(left_failed, right_failed)
-
-        return (
-            ValidationWarning(self, {
-                'row': row_idx,
-            }) for row_idx in np.where(failed)
-        )
+        # failed = self.operator(left_errors, right_errors)
+        #
+        # # If they did fail, obtain warnings from the validation that caused it
+        # return chain(
+        #     self.v_a.generate_warnings(left_series[left_failed & failed]),
+        #     self.v_b.generate_warnings(right_series[right_failed & failed]),
+        # )
 
     @property
     def default_message(self):
