@@ -129,6 +129,10 @@ a word, but it doesn't contain the letter 'a':
 Note that these operators do not short-circuit, so all validations will be applied to all rows, regardless of if that
 row has already failed a validation.
 
+Changelog
+---------
+.. include:: ./changelog.rst
+
 Development
 -----------
 
