@@ -90,7 +90,9 @@ class _SeriesValidation(_BaseValidation):
                 validated = ~series.isnull() & simple_validation
             else:
                 validated = (series.str.len() > 0) & simple_validation
-
+        elif column.optional:
+            if bool(series.isnull().all()) or list(series.unique()) == ['']:
+                validated = []
         else:
             validated = simple_validation
 

@@ -5,7 +5,9 @@ from . import validation
 from .validation_warning import ValidationWarning
 
 class Column:
-    def __init__(self, name: str, validations: typing.Iterable['validation._BaseValidation'] = [], allow_empty=False):
+    def __init__(self, name: str, validations: typing.Iterable['validation._BaseValidation'] = [],
+                 allow_empty=False,
+                 optional=False):
         """
         Creates a new Column object
 
@@ -16,6 +18,7 @@ class Column:
         self.name = name
         self.validations = list(validations)
         self.allow_empty = allow_empty
+        self.optional = optional
 
     def validate(self, series: pd.Series) -> typing.List[ValidationWarning]:
         """
