@@ -67,6 +67,7 @@ setup(
     version=version['__version__'],
     description='A validation library for Pandas data frames using user-friendly schemas',
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     url='https://github.com/TMiguelT/PandasSchema',
     author='Michael Milton',
     author_email='michael.r.milton@gmail.com',
