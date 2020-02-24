@@ -26,3 +26,8 @@ that spawned it
     * Each category of Validation will define a `create_prefix()` method, that creates the {row: 1, column: 2} prefix
     that goes before each message. Thus, `generate_message()` will concatenate that with the actual message
 * 
+
+## Options for placing CombinedValidation in the inheritance hierarchy
+* In order to make both CombinedValidation and BooleanSeriesValidation both share a class, so they can be chained together,
+either we had to make a mixin that creates a "side path" that doesn't call `validate` (in this case, `validate_with_series`),
+or we 

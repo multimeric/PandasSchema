@@ -119,7 +119,24 @@ class IndexSeriesValidation(SeriesValidation):
         pass
 
 
-class BooleanSeriesValidation(IndexSeriesValidation):
+class WarningSeriesGenerator(BaseValidation, abc.ABC):
+    """
+    Mixin class that indicates that this Validation can produce a "warning series", which is a pandas Series with one
+    or more warnings in each cell, corresponding to warnings detected in the DataFrame at the same index
+    """
+
+    @abc.abstractmethod
+    def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
+        """
+        Return a series of ValidationWarnings, not an iterable of ValidationWarnings like the normal validate() method
+        """
+
+    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+        warnings = self.get_warning_series(df)
+        return warnings.dropna().explode().tolist()
+
+
+class BooleanSeriesValidation(IndexSeriesValidation, WarningSeriesGenerator):
     """
     Validation is defined by the function :py:meth:~select_cells that returns a boolean series.
         Each cell that has False has failed the validation.
@@ -137,68 +154,55 @@ class BooleanSeriesValidation(IndexSeriesValidation):
         """
         pass
 
-    # def generate_warnings(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
-    #     """
-    #     Given a series that has been sliced down to only those that definitely failed, produce a list of
-    #     ValidationWarnings.
-    #     Note, this is different to validate_series, which actually calculates which rows have failed.
-    #     Having this as a separate method allows it to be accessed by the CombinedValidation
-    #
-    #     :param series: A series that has been sliced down to only those that definitely failed
-    #     """
-    #     return (
-    #         ValidationWarning(self, {
-    #             'row': row_idx,
-    #             'value': cell
-    #         }) for row_idx, cell in series.items()
-    #     )
-
-    def warning_series(self, series):
+    def get_warning_series(self, series) -> pd.Series:
+        """
+        Validates a series and returns a series of warnings.
+        This is shared by the two validation entrypoints, :py:meth:~validate_with_series, and :py:meth:`~validate_series
+        :param series: The series to validate
+        """
         failed = ~self.select_cells(series)
 
         # Slice out the failed items, then map each into a list of validation warnings at each respective index
         return series[failed].to_frame().apply(lambda row: [ValidationWarning(self, {
-                'row': row.name,
-                'value': row[0]
-            })], axis='columns')
-
-    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
-        warnings = self.warning_series(series)
-
-        # Remove the empty elements, split the list of warnings in each cell, and then compile that into a list
-        return warnings.dropna().explode().tolist()
+            'row': row.name,
+            'value': row[0]
+        })], axis='columns')
 
 
-class CombinedValidation(BaseValidation):
+class CombinedValidation(WarningSeriesGenerator):
     """
     Validates if one and/or the other validation is true for an element
     """
 
-    def __init__(self, validation_a: BooleanSeriesValidation, validation_b: BooleanSeriesValidation, operator,
+    def __init__(self, validation_a: BooleanSeriesValidation, validation_b: BooleanSeriesValidation, operator: str,
                  message: str):
         super().__init__(message=message)
         self.operator = operator
         self.left = validation_a
         self.right = validation_b
 
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+    def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
         left_series = self.left.select_series(df)
         right_series = self.right.select_series(df)
 
-        left_errors = self.left.warning_series(left_series)
-        right_errors = self.right.warning_series(right_series)
+        left_errors = self.left.get_warning_series(left_series)
+        right_errors = self.right.get_warning_series(right_series)
 
-        # TODO
+        if self.operator == 'and':
+            # If it's an "and" validation, left, right, or both failing means an error, so we can simply concatenate
+            # the lists of errors
+            combined = left_errors.combine(right_errors, func=operator.add)
+        elif self.operator == 'or':
+            # [error] and [] = []
+            # [error_1] and [error_2] = [error_2]
+            # [] and [] = []
+            # Thus, we can use the and operator to implement "or" validations
+            combined = left_errors.combine(right_errors, func=operator.and_)#func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
+        else:
+            raise Exception('Operator must be "and" or "or"')
 
-        # Then, we combine the two resulting boolean series, and determine the row indices of the result
-        # failed = self.operator(left_errors, right_errors)
-        #
-        # # If they did fail, obtain warnings from the validation that caused it
-        # return chain(
-        #     self.v_a.generate_warnings(left_series[left_failed & failed]),
-        #     self.v_b.generate_warnings(right_series[right_failed & failed]),
-        # )
+        return combined
 
     @property
     def default_message(self):
