@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
-from pandas_schema.index import PandasIndexer
+from pandas_schema.index import PandasIndexer, IndexValue
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
@@ -29,64 +29,37 @@ class BaseValidation(abc.ABC):
         :return: All validation failures detected by this validation
         """
 
+    @abc.abstractmethod
     def message(self, warning: ValidationWarning) -> str:
         pass
 
 
-class SeriesValidation(BaseValidation):
+class IndexValidation(BaseValidation):
     """
-    A SeriesValidation validates a DataFrame by selecting a single series from it, and
-    applying some validation to it
-    """
-
-    @abc.abstractmethod
-    def select_series(self, df: pd.DataFrame) -> pd.Series:
-        """
-        Selects a series from the DataFrame that will be validated
-        """
-
-    @abc.abstractmethod
-    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
-        """
-        Validate a single series
-        """
-
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
-        series = self.select_series(df)
-        return self.validate_series(series)
-
-
-class IndexSeriesValidation(SeriesValidation):
-    """
-    Selects a series from the DataFrame, using label or position-based indexes that can be provided at instantiation
-    or later
+    Mixin for Validation classes, giving them access to an index for selecting a Series out of the DataFrame
     """
 
-    def __init__(self, index: PandasIndexer = None, message: str = None):
+    def __init__(self, index: typing.Union[PandasIndexer, IndexValue], message: str = None, **kwargs):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
         Otherwise it's a label (ie, index=0) indicates the column with the label of 0
         """
-        self.index = index
+        super().__init__(**kwargs)
+        if isinstance(index, PandasIndexer):
+            self.index = index
+        else:
+            # If it isn't already an indexer object, convert it to one
+            self.index = PandasIndexer(index=index)
         self.custom_message = message
 
-    def message(self, warning: ValidationWarning):
-        """
-        Gets a message describing how the DataFrame cell failed the validation
-        This shouldn't really be overridden, instead override default_message so that users can still set per-object
-        messages
-        :return:
-        """
-        if self.index.type == 'position':
-            prefix = self.index.index
-        else:
-            prefix = '"{}"'.format(self.index.index)
+    def message(self, warning: ValidationWarning) -> str:
+        prefix = self.prefix()
 
         if self.custom_message:
             suffix = self.custom_message
         else:
-            suffix = self.default_message(warning)
+            suffix = self.default_message
 
         return "Column {} {}".format(prefix, suffix)
 
@@ -97,12 +70,7 @@ class IndexSeriesValidation(SeriesValidation):
         """
         return type(self).__name__
 
-    def default_message(self, warning: ValidationWarning) -> str:
-        """
-        Create a message to be displayed whenever this validation fails
-        This should be a generic message for the validation type, but can be overwritten if the user provides a
-        message kwarg
-        """
+    def default_message(self) -> str:
         return 'failed the {}'.format(self.readable_name)
 
     def select_series(self, df: pd.DataFrame) -> pd.Series:
@@ -113,6 +81,53 @@ class IndexSeriesValidation(SeriesValidation):
             raise PanSchNoIndexError()
 
         return self.index(df)
+
+    def prefix(self):
+        """
+        Return a string that could be used to prefix a message that relates to this index
+        """
+        if self.index is None:
+            return ""
+
+        if self.index.type == 'position':
+            return self.index.index
+        else:
+            return '"{}"'.format(self.index.index)
+
+
+#
+# class SeriesValidation(BaseValidation):
+#     """
+#     A SeriesValidation validates a DataFrame by selecting a single series from it, and
+#     applying some validation to it
+#     """
+#
+#     @abc.abstractmethod
+#     def select_series(self, df: pd.DataFrame) -> pd.Series:
+#         """
+#         Selects a series from the DataFrame that will be validated
+#         """
+#
+#     @abc.abstractmethod
+#     def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
+#         """
+#         Validate a single series
+#         """
+#
+#     def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+#         series = self.select_series(df)
+#         return self.validate_series(series)
+
+
+class SeriesValidation(IndexValidation):
+    """
+    A SeriesValidation validates a DataFrame by selecting a single series from it, and
+    applying some validation to it
+    """
+
+    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+        series = self.index(df)
+        return self.validate_series(series)
 
     @abc.abstractmethod
     def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
@@ -131,12 +146,25 @@ class WarningSeriesGenerator(BaseValidation, abc.ABC):
         Return a series of ValidationWarnings, not an iterable of ValidationWarnings like the normal validate() method
         """
 
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+    @staticmethod
+    def flatten_warning_series(warnings: pd.Series):
+        """
+        Converts a warning series into an iterable of warnings
+        """
+        return warnings[warnings.astype(bool)].explode().tolist()
+
+    def validate(self, df: pd.DataFrame, flatten=True) -> typing.Union[
+        typing.Iterable[ValidationWarning],
+        pd.Series
+    ]:
         warnings = self.get_warning_series(df)
-        return warnings.dropna().explode().tolist()
+        if flatten:
+            return self.flatten_warning_series(warnings)
+        else:
+            return warnings
 
 
-class BooleanSeriesValidation(IndexSeriesValidation, WarningSeriesGenerator):
+class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
     """
     Validation is defined by the function :py:meth:~select_cells that returns a boolean series.
         Each cell that has False has failed the validation.
@@ -154,19 +182,35 @@ class BooleanSeriesValidation(IndexSeriesValidation, WarningSeriesGenerator):
         """
         pass
 
-    def get_warning_series(self, series) -> pd.Series:
+    def validate_series(self, series, flatten=True) -> typing.Union[
+        typing.Iterable[ValidationWarning],
+        pd.Series
+    ]:
+        """
+        Utility method for shortcutting data-frame validation and instead validating only a single series
+        """
+        failed = ~self.select_cells(series)
+
+        # Slice out the failed items, then map each into a list of validation warnings at each respective index
+        warnings = series[failed].to_frame().apply(lambda row: [ValidationWarning(self, {
+            'row': row.name,
+            'value': row[0]
+        })], axis='columns', result_type='reduce')
+        # warnings = warnings.iloc[:, 0]
+
+        if flatten:
+            return self.flatten_warning_series(warnings)
+        else:
+            return warnings
+
+    def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
         """
         Validates a series and returns a series of warnings.
         This is shared by the two validation entrypoints, :py:meth:~validate_with_series, and :py:meth:`~validate_series
         :param series: The series to validate
         """
-        failed = ~self.select_cells(series)
-
-        # Slice out the failed items, then map each into a list of validation warnings at each respective index
-        return series[failed].to_frame().apply(lambda row: [ValidationWarning(self, {
-            'row': row.name,
-            'value': row[0]
-        })], axis='columns')
+        series = self.select_series(df)
+        return self.validate_series(series, flatten=False)
 
 
 class CombinedValidation(WarningSeriesGenerator):
@@ -174,31 +218,31 @@ class CombinedValidation(WarningSeriesGenerator):
     Validates if one and/or the other validation is true for an element
     """
 
-    def __init__(self, validation_a: BooleanSeriesValidation, validation_b: BooleanSeriesValidation, operator: str,
-                 message: str):
-        super().__init__(message=message)
+    def message(self, warning: ValidationWarning) -> str:
+        pass
+
+    def __init__(self, validation_a: WarningSeriesGenerator, validation_b: WarningSeriesGenerator, operator: str):
+        super().__init__()
         self.operator = operator
         self.left = validation_a
         self.right = validation_b
 
     def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
-        left_series = self.left.select_series(df)
-        right_series = self.right.select_series(df)
-
-        left_errors = self.left.get_warning_series(left_series)
-        right_errors = self.right.get_warning_series(right_series)
+        left_errors = self.left.validate(df, flatten=False)
+        right_errors = self.right.validate(df, flatten=False)
 
         if self.operator == 'and':
             # If it's an "and" validation, left, right, or both failing means an error, so we can simply concatenate
             # the lists of errors
-            combined = left_errors.combine(right_errors, func=operator.add)
+            combined = left_errors.combine(right_errors, func=operator.add, fill_value=[])
         elif self.operator == 'or':
             # [error] and [] = []
             # [error_1] and [error_2] = [error_2]
             # [] and [] = []
             # Thus, we can use the and operator to implement "or" validations
-            combined = left_errors.combine(right_errors, func=operator.and_)#func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
+            combined = left_errors.combine(right_errors, func=lambda l, r: l + r if l and r else [], fill_value=[])
+            # func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
         else:
             raise Exception('Operator must be "and" or "or"')
 

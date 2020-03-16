@@ -10,41 +10,43 @@ import numpy as np
 import pandas as pd
 
 from pandas_schema.validations import *
-from pandas_schema.core import BooleanSeriesValidation
+from pandas_schema.core import BooleanSeriesValidation, CombinedValidation, BaseValidation
 from pandas_schema.index import ColumnIndexer as ci
 from pandas_schema.schema import Schema
 from pandas_schema.column import column, column_sequence
 from pandas_schema import ValidationWarning
 
 
+def get_warnings(validator: BaseValidation, series: list) -> typing.Collection[ValidationWarning]:
+    """
+    Tests a validator by asserting that it generates the amount of warnings
+    :param series_dtype: Explicitly specifies the dtype for the generated Series
+    :param series: The series to check
+    :param expected_result: Whether the elements in this series should pass the validation
+    :param msg: The message to display if this test fails
+    """
+
+    # # Check that self.validator is correct
+    # if not self.validator or not isinstance(self.validator, BooleanSeriesValidation, index=0):
+    #     raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
+    #
+    # # Ensure we're comparing series correctly
+    # self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
+
+    df = pd.Series(series).to_frame()
+    warnings = validator.validate(df)
+    return list(warnings)
+    #
+    # # Now find any items where their validation does not correspond to the expected_result
+    # for item, result in zip(series, results):
+    #     with self.subTest(value=item):
+    #         self.assertEqual(result, expected_result, msg)
+
+
 class ValidationTestBase(unittest.TestCase):
     def seriesEquality(self, s1: pd.Series, s2: pd.Series, msg: str = None):
         if not s1.equals(s2):
             raise self.failureException(msg)
-
-    def validate_and_compare(self, series: list, expected_result: bool, msg: str = None):
-        """
-        Checks that every element in the provided series is equal to `expected_result` after validation
-        :param series_dtype: Explicitly specifies the dtype for the generated Series
-        :param series: The series to check
-        :param expected_result: Whether the elements in this series should pass the validation
-        :param msg: The message to display if this test fails
-        """
-
-        # Check that self.validator is correct
-        if not self.validator or not isinstance(self.validator, BooleanSeriesValidation):
-            raise ValueError('The class must have the validator field set to an instance of a Validation subclass')
-
-        # Ensure we're comparing series correctly
-        self.addTypeEqualityFunc(pd.Series, self.seriesEquality)
-
-        # Convert the input list to a series and validate it
-        results = self.validator.select_cells(pd.Series(series))
-
-        # Now find any items where their validation does not correspond to the expected_result
-        for item, result in zip(series, results):
-            with self.subTest(value=item):
-                self.assertEqual(result, expected_result, msg)
 
 
 class CustomSeries(ValidationTestBase):
@@ -53,13 +55,17 @@ class CustomSeries(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CustomSeriesValidation(lambda s: ~s.str.contains('fail'), 'contained the word fail')
+        self.validator = CustomSeriesValidation(
+            lambda s: ~s.str.contains('fail'),
+            message='contained the word fail',
+            index=0
+        )
 
     def test_valid_inputs(self):
-        self.validate_and_compare(['good', 'success'], True, 'did not accept valid inputs')
+        assert len(get_warnings(self.validator, ['good', 'success'])) == 0, 'did not accept valid inputs'
 
     def test_invalid_inputs(self):
-        self.validate_and_compare(['fail', 'failure'], False, 'accepted invalid inputs')
+        assert len(get_warnings(self.validator, ['fail', 'failure'])) == 2, 'accepted invalid inputs'
 
 
 class CustomElement(ValidationTestBase):
@@ -68,13 +74,18 @@ class CustomElement(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CustomElementValidation(lambda s: s.startswith('_start_'), "Didn't begin with '_start_'")
+        self.validator = CustomElementValidation(
+            lambda s: s.startswith('_start_'),
+            message="Didn't begin with '_start_'",
+            index=0
+        )
 
     def test_valid_inputs(self):
-        self.validate_and_compare(['_start_sdiyhsd', '_start_234fpwunxc\n'], True, 'did not accept valid inputs')
+        assert len(
+            get_warnings(self.validator, ['_start_sdiyhsd', '_start_234fpwunxc\n'])) == 0, 'did not accept valid inputs'
 
     def test_invalid_inputs(self):
-        self.validate_and_compare(['fail', '324wfp9ni'], False, 'accepted invalid inputs')
+        assert len(get_warnings(self.validator, ['fail', '324wfp9ni'])) == 2, 'accepted invalid inputs'
 
 
 class LeadingWhitespace(ValidationTestBase):
@@ -83,43 +94,31 @@ class LeadingWhitespace(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = LeadingWhitespaceValidation()
+        self.validator = LeadingWhitespaceValidation(index=0)
 
     def test_validate_trailing_whitespace(self):
-        self.validate_and_compare(
-            [
-                'trailing space   ',
-                'trailing tabs  ',
-                '''trailing newline
-                '''
-            ],
-            True,
-            'is incorrectly failing on trailing whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            'trailing space   ',
+            'trailing tabs  ',
+            '''trailing newline
+            '''
+        ])) == 0, 'is incorrectly failing on trailing whitespace'
 
     def test_validate_leading_whitespace(self):
-        self.validate_and_compare(
-            [
-                '   leading spaces',
-                '   leading tabs',
-                '''
-                leading newline''',
-            ],
-            False,
-            'does not detect leading whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            '   leading spaces',
+            '   leading tabs',
+            '''
+            leading newline''',
+        ])) == 3, 'does not detect leading whitespace'
 
     def test_validate_middle_whitespace(self):
-        self.validate_and_compare(
-            [
-                'middle spaces',
-                'middle tabs',
-                '''middle
-                newline''',
-            ],
-            True,
-            'is incorrectly failing on central whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            'middle spaces',
+            'middle tabs',
+            '''middle
+            newline''',
+        ])) == 0, 'is incorrectly failing on central whitespace'
 
 
 class TrailingWhitespace(ValidationTestBase):
@@ -128,44 +127,32 @@ class TrailingWhitespace(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = TrailingWhitespaceValidation()
+        self.validator = TrailingWhitespaceValidation(index=0)
         super().setUp()
 
     def test_validate_trailing_whitespace(self):
-        self.validate_and_compare(
-            [
-                'trailing space   ',
-                'trailing tabs  ',
-                '''trailing newline
-                '''
-            ],
-            False,
-            'is not detecting trailing whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            'trailing space   ',
+            'trailing tabs  ',
+            '''trailing newline
+            '''
+        ])) == 3, 'is not detecting trailing whitespace'
 
     def test_validate_leading_whitespace(self):
-        self.validate_and_compare(
-            [
-                '   leading spaces',
-                '   leading tabs',
-                '''
-                leading newline''',
-            ],
-            True,
-            'is incorrectly failing on leading whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            '   leading spaces',
+            '   leading tabs',
+            '''
+            leading newline''',
+        ])) == 0, 'is incorrectly failing on leading whitespace'
 
     def test_validate_middle_whitespace(self):
-        self.validate_and_compare(
-            [
-                'middle spaces',
-                'middle tabs',
-                '''middle
-                newline''',
-            ],
-            True,
-            'is incorrectly failing on central whitespace'
-        )
+        assert len(get_warnings(self.validator, [
+            'middle spaces',
+            'middle tabs',
+            '''middle
+            newline''',
+        ])) == 0, 'is incorrectly failing on central whitespace'
 
 
 class CanCallJson(ValidationTestBase):
@@ -174,29 +161,21 @@ class CanCallJson(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CanCallValidation(json.loads)
+        self.validator = CanCallValidation(json.loads, index=0)
 
     def test_validate_valid_json(self):
-        self.validate_and_compare(
-            [
-                '[1, 2, 3]',
-                '{"a": 1.1, "b": 2.2, "c": 3.3}',
-                '"string"'
-            ],
-            True,
-            'is incorrectly failing on valid JSON'
-        )
+        assert len(get_warnings(self.validator, [
+            '[1, 2, 3]',
+            '{"a": 1.1, "b": 2.2, "c": 3.3}',
+            '"string"'
+        ])) == 0, 'is incorrectly failing on valid JSON'
 
     def test_validate_invalid_json(self):
-        self.validate_and_compare(
-            [
-                '[1, 2, 3',
-                '{a: 1.1, b: 2.2, c: 3.3}',
-                'string'
-            ],
-            False,
-            'is not detecting invalid JSON'
-        )
+        assert len(get_warnings(self.validator, [
+            '[1, 2, 3',
+            '{a: 1.1, b: 2.2, c: 3.3}',
+            'string'
+        ])) == 3, 'is not detecting invalid JSON'
 
 
 class CanCallLambda(ValidationTestBase):
@@ -206,29 +185,21 @@ class CanCallLambda(ValidationTestBase):
 
     def setUp(self):
         # Succeed if it's divisible by 2, otherwise cause an error
-        self.validator = CanCallValidation(lambda x: False if x % 2 == 0 else 1 / 0)
+        self.validator = CanCallValidation(lambda x: False if x % 2 == 0 else 1 / 0, index=0)
 
     def test_validate_noerror(self):
-        self.validate_and_compare(
-            [
-                2,
-                4,
-                6
-            ],
-            True,
-            'is incorrectly failing on even numbers'
-        )
+        assert len(get_warnings(self.validator, [
+            2,
+            4,
+            6
+        ])) == 0, 'is incorrectly failing on even numbers'
 
     def test_validate_error(self):
-        self.validate_and_compare(
-            [
-                1,
-                3,
-                5
-            ],
-            False,
-            'should fail on odd numbers'
-        )
+        assert len(get_warnings(self.validator, [
+            1,
+            3,
+            5
+        ])) == 3, 'should fail on odd numbers'
 
 
 class CanConvertInt(ValidationTestBase):
@@ -237,161 +208,117 @@ class CanConvertInt(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CanConvertValidation(int)
+        self.validator = CanConvertValidation(int, index=0)
 
     def test_valid_int(self):
-        self.validate_and_compare(
-            [
-                '1',
-                '10',
-                '999',
-                '99999'
-            ],
-            True,
-            'does not accept valid integers'
-        )
+        assert len(get_warnings(self.validator, [
+            '1',
+            '10',
+            '999',
+            '99999'
+        ])) == 0, 'does not accept valid integers'
 
     def test_invalid_int(self):
-        self.validate_and_compare(
-            [
-                '1.0',
-                '9.5',
-                'abc',
-                '1e-6'
-            ],
-            False,
-            'accepts invalid integers'
-        )
+        assert len(get_warnings(self.validator, [
+            '1.0',
+            '9.5',
+            'abc',
+            '1e-6'
+        ])) == 4, 'accepts invalid integers'
 
 
 class InListCaseSensitive(ValidationTestBase):
     def setUp(self):
-        self.validator = InListValidation(['a', 'b', 'c'])
+        self.validator = InListValidation(['a', 'b', 'c'], index=0)
 
     def test_valid_elements(self):
-        self.validate_and_compare(
-            [
-                'a',
-                'b',
-                'c'
-            ],
-            True,
-            'does not accept elements that are in the validation list'
-        )
+        assert len(get_warnings(self.validator, [
+            'a',
+            'b',
+            'c'
+        ])) == 0, 'does not accept elements that are in the validation list'
 
     def test_invalid_elements(self):
-        self.validate_and_compare(
-            [
-                'aa',
-                'bb',
-                'd',
-                'A',
-                'B',
-                'C'
-            ],
-            False,
-            'accepts elements that are not in the validation list'
-        )
+        assert len(get_warnings(self.validator, [
+            'aa',
+            'bb',
+            'd',
+            'A',
+            'B',
+            'C'
+        ])) == 6, 'accepts elements that are not in the validation list'
 
 
 class InListCaseInsensitive(ValidationTestBase):
     def setUp(self):
-        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False)
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False, index=0)
 
     def test_valid_elements(self):
-        self.validate_and_compare(
-            [
-                'a',
-                'b',
-                'c',
-                'A',
-                'B',
-                'C'
-            ],
-            True,
-            'does not accept elements that are in the validation list'
-        )
+        assert len(get_warnings(self.validator, [
+            'a',
+            'b',
+            'c',
+            'A',
+            'B',
+            'C'
+        ])) == 0, 'does not accept elements that are in the validation list'
 
     def test_invalid_elements(self):
-        self.validate_and_compare(
-            [
-                'aa',
-                'bb',
-                'd',
-            ],
-            False,
-            'accepts elements that are not in the validation list'
-        )
+        assert len(get_warnings(self.validator, [
+            'aa',
+            'bb',
+            'd',
+        ])) == 3, 'accepts elements that are not in the validation list'
 
 
 class DateFormat(ValidationTestBase):
     def setUp(self):
-        self.validator = DateFormatValidation('%Y%m%d')
+        self.validator = DateFormatValidation('%Y%m%d', index=0)
 
     def test_valid_dates(self):
-        self.validate_and_compare(
-            [
-                '20160404',
-                '00011212'
-            ],
-            True,
-            'does not accept valid dates'
-        )
+        assert len(get_warnings(self.validator, [
+            '20160404',
+            '00011212'
+        ])) == 0, 'does not accept valid dates'
 
     def test_invalid_dates(self):
-        self.validate_and_compare(
-            [
-                '1/2/3456',
-                'yyyymmdd',
-                '11112233'
-            ],
-            False,
-            'accepts invalid dates'
-        )
+        assert len(get_warnings(self.validator, [
+            '1/2/3456',
+            'yyyymmdd',
+            '11112233'
+        ])) == 3, 'accepts invalid dates'
 
 
 class StringRegexMatch(ValidationTestBase):
     def setUp(self):
-        self.validator = MatchesPatternValidation('^.+\.txt$')
+        self.validator = MatchesPatternValidation('^.+\.txt$', index=0)
 
     def test_valid_strings(self):
-        self.validate_and_compare(
-            [
-                'pass.txt',
-                'a.txt',
-                'lots of words.txt'
-            ],
-            True,
-            'does not accept strings matching the regex'
-        )
+        assert len(get_warnings(self.validator, [
+            'pass.txt',
+            'a.txt',
+            'lots of words.txt'
+        ])) == 0, 'does not accept strings matching the regex'
 
     def test_invalid_strings(self):
-        self.validate_and_compare(
-            [
-                'pass.TXT',
-                '.txt',
-                'lots of words.tx'
-            ],
-            False,
-            'accepts strings that do not match the regex'
-        )
+        assert len(get_warnings(self.validator, [
+            'pass.TXT',
+            '.txt',
+            'lots of words.tx'
+        ])) == 3, 'accepts strings that do not match the regex'
 
 
 class IsDistinct(ValidationTestBase):
     def setUp(self):
-        self.validator = IsDistinctValidation()
+        self.validator = IsDistinctValidation(index=0)
 
     def test_valid_strings(self):
-        self.validate_and_compare(
-            [
-                '1',
-                '2',
-                '3',
-                '4'
-            ],
-            True,
-            'does not accept unique strings'
-        )
+        assert len(get_warnings(self.validator, [
+            '1',
+            '2',
+            '3',
+            '4'
+        ])) == 0, 'does not accept unique strings'
 
     def test_invalid_strings(self):
         validation = self.validator.select_cells(pd.Series([
@@ -415,29 +342,21 @@ class CompiledRegexMatch(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = MatchesPatternValidation(re.compile('^.+\.txt$', re.IGNORECASE))
+        self.validator = MatchesPatternValidation(re.compile('^.+\.txt$', re.IGNORECASE), index=0)
 
     def test_valid_strings(self):
-        self.validate_and_compare(
-            [
-                'pass.txt',
-                'a.TXT',
-                'lots of words.tXt'
-            ],
-            True,
-            'does not accept strings matching the regex'
-        )
+        assert len(get_warnings(self.validator, [
+            'pass.txt',
+            'a.TXT',
+            'lots of words.tXt'
+        ])) == 0, 'does not accept strings matching the regex'
 
     def test_invalid_strings(self):
-        self.validate_and_compare(
-            [
-                'pass.txtt',
-                '.txt',
-                'lots of words.tx'
-            ],
-            False,
-            'accepts strings that do not match the regex'
-        )
+        assert len(get_warnings(self.validator, [
+            'pass.txtt',
+            '.txt',
+            'lots of words.tx'
+        ])) == 3, 'accepts strings that do not match the regex'
 
 
 class InRange(ValidationTestBase):
@@ -446,29 +365,21 @@ class InRange(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = InRangeValidation(7, 9)
+        self.validator = InRangeValidation(7, 9, index=0)
 
     def test_valid_items(self):
-        self.validate_and_compare(
-            [
-                7,
-                8,
-                7
-            ],
-            True,
-            'does not accept integers in the correct range'
-        )
+        assert len(get_warnings(self.validator, [
+            7,
+            8,
+            7
+        ])) == 0, 'does not accept integers in the correct range'
 
     def test_invalid_items(self):
-        self.validate_and_compare(
-            [
-                1,
-                2,
-                3
-            ],
-            False,
-            'Incorrectly accepts integers outside of the range'
-        )
+        assert len(get_warnings(self.validator, [
+            1,
+            2,
+            3
+        ])) == 3, 'Incorrectly accepts integers outside of the range'
 
 
 class Dtype(ValidationTestBase):
@@ -477,7 +388,7 @@ class Dtype(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = IsDtypeValidation(np.number)
+        self.validator = IsDtypeValidation(np.number, index=0)
 
     def test_valid_items(self):
         errors = self.validator.validate_series(pd.Series(
@@ -499,7 +410,6 @@ class Dtype(ValidationTestBase):
 
         self.assertEqual(len(errors), 1)
         self.assertEqual(type(errors[0]), ValidationWarning)
-
 
     def test_schema(self):
         """
@@ -530,36 +440,27 @@ class Dtype(ValidationTestBase):
         )
 
 
-
 class Negate(ValidationTestBase):
     """
     Tests the ~ operator on a MatchesPatternValidation
     """
 
     def setUp(self):
-        self.validator = ~MatchesPatternValidation('fail')
+        self.validator = ~MatchesPatternValidation('fail', index=0)
 
     def test_valid_items(self):
-        self.validate_and_compare(
-            [
-                'Pass',
-                '1',
-                'True'
-            ],
-            True,
-            'Rejects values that should pass'
-        )
+        assert len(get_warnings(self.validator, [
+            'Pass',
+            '1',
+            'True'
+        ])) == 0, 'Rejects values that should pass'
 
     def test_invalid_items(self):
-        self.validate_and_compare(
-            [
-                'fail',
-                'thisfails',
-                'failure'
-            ],
-            False,
-            'Accepts values that should pass'
-        )
+        assert len(get_warnings(self.validator, [
+            'fail',
+            'thisfails',
+            'failure'
+        ])) == 3, 'Accepts values that should pass'
 
 
 class Or(ValidationTestBase):
@@ -568,30 +469,27 @@ class Or(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation('pass')
+        self.validator = CombinedValidation(
+            MatchesPatternValidation('yes', index=0),
+            MatchesPatternValidation('pass', index=0),
+            'or'
+        )
+        # self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation('pass', index=0)
 
     def test_valid_items(self):
-        self.validate_and_compare(
-            [
-                'pass',
-                'yes',
-                'passyes',
-                '345yes345'
-            ],
-            True,
-            'Rejects values that should pass'
-        )
+        assert len(get_warnings(self.validator, [
+            'pass',
+            'yes',
+            'passyes',
+            '345yes345'
+        ])) == 0, 'rejects values that should pass'
 
     def test_invalid_items(self):
-        self.validate_and_compare(
-            [
-                'fail',
-                'YES',
-                'YPESS'
-            ],
-            False,
-            'Accepts values that should pass'
-        )
+        assert len(get_warnings(self.validator, [
+            'fail',
+            'YES',
+            'YPESS'
+        ])) == 6, 'accepts values that should pass'
 
 
 class CustomMessage(ValidationTestBase):
@@ -610,7 +508,7 @@ class CustomMessage(ValidationTestBase):
                     2,
                     3
                 ]
-        )):
+        ), flatten=True):
             self.assertNotRegex(error.message, self.message, 'Validator not using the default warning message!')
 
     def test_custom_message(self):
@@ -621,7 +519,7 @@ class CustomMessage(ValidationTestBase):
                     2,
                     3
                 ]
-        )):
+        ), flatten=True):
             self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
 
 
@@ -634,17 +532,17 @@ class GetErrorTests(ValidationTestBase):
         self.vals = [1.0, None, 3]
 
     def test_in_range_allow_empty_with_error(self):
-        validator = InRangeValidation(min=4)
+        validator = InRangeValidation(min=4, index=0)
         errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), sum(v is not None for v in self.vals))
 
     def test_in_range_allow_empty_with_no_error(self):
-        validator = InRangeValidation(min=0)
+        validator = InRangeValidation(min=0, index=0)
         errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), 0)
 
     def test_in_range_allow_empty_false_with_error(self):
-        validator = InRangeValidation(min=4)
+        validator = InRangeValidation(min=4, index=0)
         errors = list(validator.validate_series(pd.Series(self.vals)))
         self.assertEqual(len(errors), len(self.vals))
 
@@ -655,7 +553,7 @@ class PandasDtypeTests(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False)
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False, index=0)
 
     def test_valid_elements(self):
         errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'))

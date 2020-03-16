@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Union
 import numpy
 import pandas
+from enum import Enum
 
 IndexValue = Union[numpy.string_, numpy.int_, str, int]
 """
@@ -11,23 +12,34 @@ a lot of things are accepted here
 """
 
 
+class IndexType(Enum):
+    POSITION = 0
+    LABEL = 1
+
+
 class PandasIndexer:
     """
     An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
     """
 
-    valid_types = {'position', 'label'}
+    # valid_types = {'position', 'label'}
     index: IndexValue
     """
     The index to use, either an integer for position-based indexing, or a string for label-based indexing
     """
-    type: str
+    type: IndexType
     """
     The type of indexing to use, either 'position' or 'label'
     """
 
-    def __init__(self, index: IndexValue, typ: str = None):
+    axis: int
+    """
+    The axis for the indexer
+    """
+
+    def __init__(self, index: IndexValue, typ: IndexType = None, axis: int = 1):
         self.index = index
+        self.axis = axis
 
         if typ is not None:
             # If the type is provided, validate it
@@ -38,31 +50,30 @@ class PandasIndexer:
         else:
             # If the type isn't provided, guess it based on the datatype of the index
             if numpy.issubdtype(type(index), numpy.character):
-                self.type = 'label'
+                self.type = IndexType.LABEL
             elif numpy.issubdtype(type(index), numpy.int_):
-                self.type = 'position'
+                self.type = IndexType.POSITION
             else:
                 raise PanSchIndexError('The index value was not either an integer or string, or an array of either of '
                                        'these')
 
-
-    def __call__(self, df: pandas.DataFrame, axis: int = 0):
+    def __call__(self, df: pandas.DataFrame):
         """
         Apply this index
         :param df: The DataFrame to index
         :param axis: The axis to index along. axis=0 will select a row, and axis=1 will select a column
         """
-        if self.type == 'label':
-            return df.loc(axis=axis)[self.index]
-        elif self.type == 'label':
-            return df.iloc(axis=axis)[self.index]
+        if self.type == IndexType.LABEL:
+            return df.loc(axis=self.axis)[self.index]
+        elif self.type == IndexType.POSITION:
+            return df.iloc(axis=self.axis)[self.index]
 
 
 class RowIndexer(PandasIndexer):
-    def __call__(self, df: pandas.DataFrame):
-        return super().__call__(df, axis=0)
+    def __init__(self, index: IndexValue, typ: IndexType = None):
+        super().__init__(index=index, typ=typ, axis=0)
 
 
 class ColumnIndexer(PandasIndexer):
-    def __call__(self, df: pandas.DataFrame):
-        return super().__call__(df, axis=1)
+    def __init__(self, index: IndexValue, typ: IndexType = None):
+        super().__init__(index=index, typ=typ, axis=1)

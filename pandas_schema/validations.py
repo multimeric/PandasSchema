@@ -7,7 +7,7 @@ import typing
 import operator
 
 from . import column
-from .core import IndexSeriesValidation, BooleanSeriesValidation
+from .core import SeriesValidation, BooleanSeriesValidation, IndexValidation
 from .validation_warning import ValidationWarning
 from .errors import PanSchArgumentError
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
@@ -19,7 +19,7 @@ class CustomSeriesValidation(BooleanSeriesValidation):
     Series methods: http://pandas.pydata.org/pandas-docs/stable/api.html#series)
     """
 
-    def __init__(self, validation: typing.Callable[[pd.Series], pd.Series], message: str):
+    def __init__(self, validation: typing.Callable[[pd.Series], pd.Series], *args, **kwargs):
         """
         :param message: The error message to provide to the user if this validation fails. The row and column and
             failing value will automatically be prepended to this message, so you only have to provide a message that
@@ -29,8 +29,9 @@ class CustomSeriesValidation(BooleanSeriesValidation):
         :param validation: A function that takes a pandas Series and returns a boolean Series, where each cell is equal
             to True if the object passed validation, and False if it failed
         """
+        super().__init__(*args, **kwargs)
         self._validation = validation
-        super().__init__(message=message)
+
 
     def select_cells(self, series: pd.Series) -> pd.Series:
         return self._validation(series)
@@ -41,8 +42,7 @@ class CustomElementValidation(BooleanSeriesValidation):
     Validates using a user-provided function that operates on each element
     """
 
-    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any],
-                 message: str):
+    def __init__(self, validation: typing.Callable[[typing.Any], typing.Any], *args, **kwargs):
         """
         :param message: The error message to provide to the user if this validation fails. The row and column and
             failing value will automatically be prepended to this message, so you only have to provide a message that
@@ -53,7 +53,7 @@ class CustomElementValidation(BooleanSeriesValidation):
             the validation, and false if it doesn't
         """
         self._validation = validation
-        super().__init__(message=message)
+        super().__init__(*args, **kwargs)
 
     def select_cells(self, series: pd.Series) -> pd.Series:
         return series.apply(self._validation)
@@ -82,7 +82,7 @@ class InRangeValidation(BooleanSeriesValidation):
         return (series >= self.min) & (series < self.max)
 
 
-class IsDtypeValidation(IndexSeriesValidation):
+class IsDtypeValidation(SeriesValidation):
     """
     Checks that a series has a certain numpy dtype
     """
@@ -126,7 +126,8 @@ class CanCallValidation(BooleanSeriesValidation):
                     type))
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'raised an exception when the callable {} was called on it'.format(
             self.callable)
 
@@ -161,7 +162,8 @@ class CanConvertValidation(CanCallValidation):
         else:
             raise PanSchArgumentError('{} is not a valid type'.format(_type))
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
@@ -180,7 +182,8 @@ class MatchesPatternValidation(BooleanSeriesValidation):
         self.options = options
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'does not match the pattern "{}"'.format(self.pattern)
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -195,7 +198,8 @@ class TrailingWhitespaceValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'contains trailing whitespace'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -210,7 +214,8 @@ class LeadingWhitespaceValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'contains leading whitespace'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -225,7 +230,8 @@ class IsDistinctValidation(BooleanSeriesValidation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'contains values that are not unique'
 
     def select_cells(self, series: pd.Series) -> pd.Series:
@@ -246,7 +252,8 @@ class InListValidation(BooleanSeriesValidation):
         self.options = options
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         values = ', '.join(str(v) for v in self.options)
         return 'is not in the list of legal options ({})'.format(values)
 
@@ -271,7 +278,8 @@ class DateFormatValidation(BooleanSeriesValidation):
         self.date_format = date_format
         super().__init__(**kwargs)
 
-    def default_message(self, warning: ValidationWarning):
+    @property
+    def default_message(self):
         return 'does not match the date format string "{}"'.format(self.date_format)
 
     def valid_date(self, val):
