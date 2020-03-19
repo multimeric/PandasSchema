@@ -291,7 +291,7 @@ class DateFormat(ValidationTestBase):
 
 class StringRegexMatch(ValidationTestBase):
     def setUp(self):
-        self.validator = MatchesPatternValidation('^.+\.txt$', index=0)
+        self.validator = MatchesPatternValidation(r'^.+\.txt$', index=0)
 
     def test_valid_strings(self):
         assert len(get_warnings(self.validator, [
@@ -352,11 +352,22 @@ class CompiledRegexMatch(ValidationTestBase):
         ])) == 0, 'does not accept strings matching the regex'
 
     def test_invalid_strings(self):
-        assert len(get_warnings(self.validator, [
+        test_data = [
             'pass.txtt',
             '.txt',
             'lots of words.tx'
-        ])) == 3, 'accepts strings that do not match the regex'
+        ]
+        warnings = get_warnings(self.validator, test_data)
+
+        # Check that every piece of data failed
+        assert len(warnings) == 3, 'accepts strings that do not match the regex'
+
+        # Also test the messages
+        for i, (warning, data) in enumerate(zip(warnings, test_data)):
+            assert 'Row {}'.format(i) in warning.message
+            assert 'Column 0' in warning.message
+            assert data in warning.message
+            assert self.validator.pattern.pattern in warning.message
 
 
 class InRange(ValidationTestBase):
@@ -501,7 +512,7 @@ class CustomMessage(ValidationTestBase):
         self.message = "UNUSUAL MESSAGE THAT WOULDN'T BE IN A NORMAL ERROR"
 
     def test_default_message(self):
-        validator = InRangeValidation(min=4)
+        validator = InRangeValidation(min=4, index=0)
         for error in validator.validate_series(pd.Series(
                 [
                     1,
@@ -512,7 +523,7 @@ class CustomMessage(ValidationTestBase):
             self.assertNotRegex(error.message, self.message, 'Validator not using the default warning message!')
 
     def test_custom_message(self):
-        validator = InRangeValidation(min=4, message=self.message)
+        validator = InRangeValidation(min=4, message=self.message, index=0)
         for error in validator.validate_series(pd.Series(
                 [
                     1,
@@ -523,6 +534,7 @@ class CustomMessage(ValidationTestBase):
             self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
 
 
+@unittest.skip('allow_empty no longer exists')
 class GetErrorTests(ValidationTestBase):
     """
     Tests for float valued columns where allow_empty=True
@@ -556,17 +568,17 @@ class PandasDtypeTests(ValidationTestBase):
         self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False, index=0)
 
     def test_valid_elements(self):
-        errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', None, 'A', 'B', 'C'], dtype='category'))
-        self.assertEqual(len(list(errors)), 0)
+        errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', 'A', 'B', 'C'], dtype='category'))
+        assert len(list(errors)) ==  0
 
     def test_invalid_empty_elements(self):
         errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd', None], dtype='category'))
-        self.assertEqual(len(list(errors)), 4)
+        assert len(list(errors)) == 4
 
     def test_invalid_and_empty_elements(self):
         errors = self.validator.validate_series(pd.Series(['a', None], dtype='category'))
-        self.assertEqual(len(list(errors)), 1)
+        assert len(list(errors)) == 1
 
     def test_invalid_elements(self):
         errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd'], dtype='category'))
-        self.assertEqual(len(list(errors)), 3)
+        assert len(list(errors)) == 3

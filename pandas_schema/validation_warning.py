@@ -1,4 +1,3 @@
-import pandas_schema
 from dataclasses import dataclass, field
 
 
@@ -8,7 +7,7 @@ class ValidationWarning:
     Represents a difference between the schema and data frame, found during the validation
     of the data frame
     """
-    validation: 'pandas_schema.BaseValidation'
+    validation: 'pandas_schema.core.BaseValidation'
     """
     The validation that spawned this warning
     """
@@ -22,4 +21,11 @@ class ValidationWarning:
 
     @property
     def message(self):
+        """
+        Return this validation as a string
+        """
+        # Internally, this actually asks the validator class to formulate a message
         return self.validation.message(self)
+
+    def __str__(self):
+        return self.message

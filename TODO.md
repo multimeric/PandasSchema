@@ -3,3 +3,6 @@
 * [x] Add replacement for allow_empty Columns 
 * [ ] New column() tests
 * [ ] New CombinedValidation tests
+* [x] Fix Negate
+* [ ] Add facility for allow_empty
+* [x] Fix messages

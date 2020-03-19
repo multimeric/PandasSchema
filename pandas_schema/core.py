@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
-from pandas_schema.index import PandasIndexer, IndexValue
+from pandas_schema.index import PandasIndexer, IndexValue, IndexType
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
@@ -34,9 +34,10 @@ class BaseValidation(abc.ABC):
         pass
 
 
-class IndexValidation(BaseValidation):
+class IndexValidation(BaseValidation, metaclass=abc.ABCMeta):
     """
-    Mixin for Validation classes, giving them access to an index for selecting a Series out of the DataFrame
+    Abstract class that builds on BaseValidation to give it access to an index for selecting a Series out of the
+    DataFrame
     """
 
     def __init__(self, index: typing.Union[PandasIndexer, IndexValue], message: str = None, **kwargs):
@@ -54,14 +55,14 @@ class IndexValidation(BaseValidation):
         self.custom_message = message
 
     def message(self, warning: ValidationWarning) -> str:
-        prefix = self.prefix()
+        prefix = self.prefix(warning)
 
         if self.custom_message:
             suffix = self.custom_message
         else:
-            suffix = self.default_message
+            suffix = self.default_message(warning)
 
-        return "Column {} {}".format(prefix, suffix)
+        return "{} {}".format(prefix, suffix)
 
     @property
     def readable_name(self, **kwargs):
@@ -70,7 +71,7 @@ class IndexValidation(BaseValidation):
         """
         return type(self).__name__
 
-    def default_message(self) -> str:
+    def default_message(self, warnings: ValidationWarning) -> str:
         return 'failed the {}'.format(self.readable_name)
 
     def select_series(self, df: pd.DataFrame) -> pd.Series:
@@ -82,17 +83,19 @@ class IndexValidation(BaseValidation):
 
         return self.index(df)
 
-    def prefix(self):
+    def prefix(self, warning: ValidationWarning):
         """
-        Return a string that could be used to prefix a message that relates to this index
+        Return a string that can be used to prefix a message that relates to this index
+
+        This method is safe to override
         """
         if self.index is None:
             return ""
 
-        if self.index.type == 'position':
-            return self.index.index
+        if self.index.type == IndexType.POSITION:
+            return 'Column {}'.format(self.index.index)
         else:
-            return '"{}"'.format(self.index.index)
+            return 'Column "{}"'.format(self.index.index)
 
 
 #
@@ -173,6 +176,10 @@ class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
         because the data is in the same form for each cell. You need only define a :py:meth~default_message.
     """
 
+    def __init__(self, *args, negated=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.negated = negated
+
     @abc.abstractmethod
     def select_cells(self, series: pd.Series) -> pd.Series:
         """
@@ -187,9 +194,17 @@ class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
         pd.Series
     ]:
         """
-        Utility method for shortcutting data-frame validation and instead validating only a single series
+        Validates a single series selected from the DataFrame
         """
-        failed = ~self.select_cells(series)
+        selection = self.select_cells(series)
+
+        if self.negated:
+            # If self.negated (which is not the default), then we don't need to flip the booleans
+            failed = selection
+        else:
+            # In the normal case we do need to flip the booleans, since select_cells returns True for cells that pass
+            # the validation, and we want cells that failed it
+            failed = ~selection
 
         # Slice out the failed items, then map each into a list of validation warnings at each respective index
         warnings = series[failed].to_frame().apply(lambda row: [ValidationWarning(self, {
@@ -198,6 +213,7 @@ class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
         })], axis='columns', result_type='reduce')
         # warnings = warnings.iloc[:, 0]
 
+        # If flatten, return a list of ValidationWarning, otherwise return a series of lists of Validation Warnings
         if flatten:
             return self.flatten_warning_series(warnings)
         else:
@@ -206,11 +222,23 @@ class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
     def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
         """
         Validates a series and returns a series of warnings.
-        This is shared by the two validation entrypoints, :py:meth:~validate_with_series, and :py:meth:`~validate_series
-        :param series: The series to validate
         """
         series = self.select_series(df)
         return self.validate_series(series, flatten=False)
+
+    def prefix(self, warning: ValidationWarning):
+        parent = super().prefix(warning)
+        # Only in this subclass do we know the contents of the warning props, since we defined them in the
+        # validate_series method. Thus, we can now add row index information
+
+        return parent + ', Row {row}: "{value}"'.format(**warning.props)
+
+    def __invert__(self) -> 'BooleanSeriesValidation':
+        """
+        If a BooleanSeriesValidation is negated, it has the opposite result
+        """
+        self.negated = not self.negated
+        return self
 
 
 class CombinedValidation(WarningSeriesGenerator):
@@ -249,5 +277,5 @@ class CombinedValidation(WarningSeriesGenerator):
         return combined
 
     @property
-    def default_message(self):
+    def default_message(self, warnings: ValidationWarning) -> str:
         return '({}) {} ({})'.format(self.v_a.message, self.operator, self.v_b.message)
