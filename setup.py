@@ -83,7 +83,7 @@ setup(
     packages=find_packages(include=['pandas_schema']),
     install_requires=[
         'numpy',
-        'pandas>=0.19',
+        'pandas>=0.23',
         'dataclasses'
     ],
     cmdclass={

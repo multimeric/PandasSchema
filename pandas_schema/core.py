@@ -166,6 +166,14 @@ class WarningSeriesGenerator(BaseValidation, abc.ABC):
         else:
             return warnings
 
+    def __or__(self, other: 'WarningSeriesGenerator'):
+        if not isinstance(other, WarningSeriesGenerator):
+            raise PanSchArgumentError('The "|" operator can only be used between two'
+            'Validations that subclass {}'.format(self.__class__))
+
+        return CombinedValidation(self, other, operator='or')
+
+
 
 class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
     """

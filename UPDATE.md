@@ -31,3 +31,17 @@ that spawned it
 * In order to make both CombinedValidation and BooleanSeriesValidation both share a class, so they can be chained together,
 either we had to make a mixin that creates a "side path" that doesn't call `validate` (in this case, `validate_with_series`),
 or we 
+
+# Rework of Validation Indexing
+## All Indexed
+* All Validations now have an index and an axis
+* However, this index can be none, can be column only, row only, or both
+* When combined with each other, the resulting boolean series will be broadcast using numpy broadcasting rules
+* e.g. 
+    * A per-series validation might have index 0 (column 0) and return a scalar (the whole series is okay)
+    * A per-cell validation might have index 0 (column 0) and return a series (True, True, False) indicating that cell 0 and 1 of column 0 are okay
+    * A per-frame validation would have index None, and might return True if the whole frame meets the validation, or a series indicating which columns or rows match the validation
+    
+# Rework of combinedvalidations
+## Bitwise
+* Could assign each validation a bit in a large bitwise enum, and `or` together a number each time that index fails a validatioin. This lets us track the origin of each warning, allowing us to slice them out by bit and generate an appropriate list of warnings

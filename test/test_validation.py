@@ -10,14 +10,16 @@ import numpy as np
 import pandas as pd
 
 from pandas_schema.validations import *
-from pandas_schema.core import BooleanSeriesValidation, CombinedValidation, BaseValidation
+from pandas_schema.core import BooleanSeriesValidation, CombinedValidation, \
+    BaseValidation
 from pandas_schema.index import ColumnIndexer as ci
 from pandas_schema.schema import Schema
 from pandas_schema.column import column, column_sequence
 from pandas_schema import ValidationWarning
 
 
-def get_warnings(validator: BaseValidation, series: list) -> typing.Collection[ValidationWarning]:
+def get_warnings(validator: BaseValidation, series: list) -> typing.Collection[
+    ValidationWarning]:
     """
     Tests a validator by asserting that it generates the amount of warnings
     :param series_dtype: Explicitly specifies the dtype for the generated Series
@@ -62,10 +64,12 @@ class CustomSeries(ValidationTestBase):
         )
 
     def test_valid_inputs(self):
-        assert len(get_warnings(self.validator, ['good', 'success'])) == 0, 'did not accept valid inputs'
+        assert len(get_warnings(self.validator, ['good',
+                                                 'success'])) == 0, 'did not accept valid inputs'
 
     def test_invalid_inputs(self):
-        assert len(get_warnings(self.validator, ['fail', 'failure'])) == 2, 'accepted invalid inputs'
+        assert len(get_warnings(self.validator,
+                                ['fail', 'failure'])) == 2, 'accepted invalid inputs'
 
 
 class CustomElement(ValidationTestBase):
@@ -82,10 +86,12 @@ class CustomElement(ValidationTestBase):
 
     def test_valid_inputs(self):
         assert len(
-            get_warnings(self.validator, ['_start_sdiyhsd', '_start_234fpwunxc\n'])) == 0, 'did not accept valid inputs'
+            get_warnings(self.validator, ['_start_sdiyhsd',
+                                          '_start_234fpwunxc\n'])) == 0, 'did not accept valid inputs'
 
     def test_invalid_inputs(self):
-        assert len(get_warnings(self.validator, ['fail', '324wfp9ni'])) == 2, 'accepted invalid inputs'
+        assert len(get_warnings(self.validator,
+                                ['fail', '324wfp9ni'])) == 2, 'accepted invalid inputs'
 
 
 class LeadingWhitespace(ValidationTestBase):
@@ -185,7 +191,8 @@ class CanCallLambda(ValidationTestBase):
 
     def setUp(self):
         # Succeed if it's divisible by 2, otherwise cause an error
-        self.validator = CanCallValidation(lambda x: False if x % 2 == 0 else 1 / 0, index=0)
+        self.validator = CanCallValidation(lambda x: False if x % 2 == 0 else 1 / 0,
+                                           index=0)
 
     def test_validate_noerror(self):
         assert len(get_warnings(self.validator, [
@@ -251,7 +258,8 @@ class InListCaseSensitive(ValidationTestBase):
 
 class InListCaseInsensitive(ValidationTestBase):
     def setUp(self):
-        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False, index=0)
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False,
+                                          index=0)
 
     def test_valid_elements(self):
         assert len(get_warnings(self.validator, [
@@ -342,7 +350,8 @@ class CompiledRegexMatch(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = MatchesPatternValidation(re.compile('^.+\.txt$', re.IGNORECASE), index=0)
+        self.validator = MatchesPatternValidation(
+            re.compile('^.+\.txt$', re.IGNORECASE), index=0)
 
     def test_valid_strings(self):
         assert len(get_warnings(self.validator, [
@@ -480,12 +489,11 @@ class Or(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = CombinedValidation(
-            MatchesPatternValidation('yes', index=0),
-            MatchesPatternValidation('pass', index=0),
-            'or'
+        self.validator = MatchesPatternValidation(
+            'yes', index=0
+        ) | MatchesPatternValidation(
+            'pass', index=0
         )
-        # self.validator = MatchesPatternValidation('yes') | MatchesPatternValidation('pass', index=0)
 
     def test_valid_items(self):
         assert len(get_warnings(self.validator, [
@@ -520,7 +528,8 @@ class CustomMessage(ValidationTestBase):
                     3
                 ]
         ), flatten=True):
-            self.assertNotRegex(error.message, self.message, 'Validator not using the default warning message!')
+            self.assertNotRegex(error.message, self.message,
+                                'Validator not using the default warning message!')
 
     def test_custom_message(self):
         validator = InRangeValidation(min=4, message=self.message, index=0)
@@ -531,7 +540,8 @@ class CustomMessage(ValidationTestBase):
                     3
                 ]
         ), flatten=True):
-            self.assertRegex(error.message, self.message, 'Validator not using the custom warning message!')
+            self.assertRegex(error.message, self.message,
+                             'Validator not using the custom warning message!')
 
 
 @unittest.skip('allow_empty no longer exists')
@@ -565,20 +575,25 @@ class PandasDtypeTests(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False, index=0)
+        self.validator = InListValidation(['a', 'b', 'c'], case_sensitive=False,
+                                          index=0)
 
     def test_valid_elements(self):
-        errors = self.validator.validate_series(pd.Series(['a', 'b', 'c', 'A', 'B', 'C'], dtype='category'))
-        assert len(list(errors)) ==  0
+        errors = self.validator.validate_series(
+            pd.Series(['a', 'b', 'c', 'A', 'B', 'C'], dtype='category'))
+        assert len(list(errors)) == 0
 
     def test_invalid_empty_elements(self):
-        errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd', None], dtype='category'))
+        errors = self.validator.validate_series(
+            pd.Series(['aa', 'bb', 'd', None], dtype='category'))
         assert len(list(errors)) == 4
 
     def test_invalid_and_empty_elements(self):
-        errors = self.validator.validate_series(pd.Series(['a', None], dtype='category'))
+        errors = self.validator.validate_series(
+            pd.Series(['a', None], dtype='category'))
         assert len(list(errors)) == 1
 
     def test_invalid_elements(self):
-        errors = self.validator.validate_series(pd.Series(['aa', 'bb', 'd'], dtype='category'))
+        errors = self.validator.validate_series(
+            pd.Series(['aa', 'bb', 'd'], dtype='category'))
         assert len(list(errors)) == 3
