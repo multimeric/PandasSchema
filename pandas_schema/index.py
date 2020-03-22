@@ -5,7 +5,7 @@ import numpy
 import pandas
 from enum import Enum
 
-IndexValue = Union[numpy.string_, numpy.int_, str, int]
+IndexValue = Union[numpy.string_, numpy.int_, str, int, slice]
 """
 A pandas index can either be an integer or string, or an array of either. This typing is a bit sketchy because really
 a lot of things are accepted here
@@ -22,11 +22,11 @@ class PandasIndexer:
     An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
     """
 
-    # valid_types = {'position', 'label'}
     index: IndexValue
     """
     The index to use, either an integer for position-based indexing, or a string for label-based indexing
     """
+
     type: IndexType
     """
     The type of indexing to use, either 'position' or 'label'
@@ -42,11 +42,9 @@ class PandasIndexer:
         self.axis = axis
 
         if typ is not None:
-            # If the type is provided, validate it
-            if typ not in self.valid_types:
-                raise PanSchIndexError('The index type was not one of {}'.format(' or '.join(self.valid_types)))
-            else:
-                self.type = typ
+            if not isinstance(typ, IndexType):
+                raise PanSchIndexError('Index must be a subclass of IndexType')
+            self.type = typ
         else:
             # If the type isn't provided, guess it based on the datatype of the index
             if numpy.issubdtype(type(index), numpy.character):
@@ -67,6 +65,26 @@ class PandasIndexer:
             return df.loc(axis=self.axis)[self.index]
         elif self.type == IndexType.POSITION:
             return df.iloc(axis=self.axis)[self.index]
+
+    def for_loc(self, df: pandas.DataFrame):
+        """
+        Returns this index as something that could be passed into df.loc[]
+        """
+        if self.type == IndexType.LABEL:
+            return df.axes[self.axis][self.index]
+        elif self.type == IndexType.POSITION:
+            return self.index
+
+    def for_iloc(self, df):
+        """
+        Returns this index as something that could be passed into df.iloc[]
+        """
+        if self.type == IndexType.LABEL:
+            return df.axes[self.axis].get_indexer(self.index)
+        elif self.type == IndexType.POSITION:
+            return self.index
+
+
 
 
 class RowIndexer(PandasIndexer):

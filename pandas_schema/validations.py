@@ -7,13 +7,13 @@ import typing
 import operator
 
 from . import column
-from .core import SeriesValidation, BooleanSeriesValidation, IndexValidation
+from .core import SeriesValidation, IndexValidation
 from .validation_warning import ValidationWarning
 from .errors import PanSchArgumentError
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
-class CustomSeriesValidation(BooleanSeriesValidation):
+class CustomSeriesValidation(IndexValidation):
     """
     Validates using a user-provided function that operates on an entire series (for example by using one of the pandas
     Series methods: http://pandas.pydata.org/pandas-docs/stable/api.html#series)
@@ -33,11 +33,11 @@ class CustomSeriesValidation(BooleanSeriesValidation):
         self._validation = validation
 
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return self._validation(series)
 
 
-class CustomElementValidation(BooleanSeriesValidation):
+class CustomElementValidation(IndexValidation):
     """
     Validates using a user-provided function that operates on each element
     """
@@ -55,11 +55,11 @@ class CustomElementValidation(BooleanSeriesValidation):
         self._validation = validation
         super().__init__(*args, **kwargs)
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return series.apply(self._validation)
 
 
-class InRangeValidation(BooleanSeriesValidation):
+class InRangeValidation(IndexValidation):
     """
     Checks that each element in the series is within a given numerical range
     """
@@ -76,7 +76,7 @@ class InRangeValidation(BooleanSeriesValidation):
     def default_message(self, warning: ValidationWarning):
         return 'was not in the range [{}, {})'.format(self.min, self.max)
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         series = pd.to_numeric(series)
         return (series >= self.min) & (series < self.max)
 
@@ -107,7 +107,7 @@ class IsDtypeValidation(SeriesValidation):
             return []
 
 
-class CanCallValidation(BooleanSeriesValidation):
+class CanCallValidation(SeriesValidation):
     """
     Validates if a given function can be called on each element in a column without raising an exception
     """
@@ -136,7 +136,7 @@ class CanCallValidation(BooleanSeriesValidation):
         except:
             return False
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return series.apply(self.can_call)
 
 
@@ -164,7 +164,7 @@ class CanConvertValidation(CanCallValidation):
         return 'cannot be converted to type {}'.format(self.callable)
 
 
-class MatchesPatternValidation(BooleanSeriesValidation):
+class MatchesPatternValidation(SeriesValidation):
     """
     Validates that a string or regular expression can match somewhere in each element in this column
     """
@@ -182,11 +182,11 @@ class MatchesPatternValidation(BooleanSeriesValidation):
     def default_message(self, warning: ValidationWarning):
         return 'does not match the pattern "{}"'.format(self.pattern.pattern)
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return series.astype(str).str.contains(self.pattern, **self.options)
 
 
-class TrailingWhitespaceValidation(BooleanSeriesValidation):
+class TrailingWhitespaceValidation(SeriesValidation):
     """
     Checks that there is no trailing whitespace in this column
     """
@@ -197,11 +197,11 @@ class TrailingWhitespaceValidation(BooleanSeriesValidation):
     def default_message(self, warning: ValidationWarning):
         return 'contains trailing whitespace'
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return ~series.astype(str).str.contains('\s+$')
 
 
-class LeadingWhitespaceValidation(BooleanSeriesValidation):
+class LeadingWhitespaceValidation(SeriesValidation):
     """
     Checks that there is no leading whitespace in this column
     """
@@ -212,11 +212,11 @@ class LeadingWhitespaceValidation(BooleanSeriesValidation):
     def default_message(self, warning: ValidationWarning):
         return 'contains leading whitespace'
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return ~series.astype(str).str.contains('^\s+')
 
 
-class IsDistinctValidation(BooleanSeriesValidation):
+class IsDistinctValidation(SeriesValidation):
     """
     Checks that every element of this column is different from each other element
     """
@@ -227,11 +227,11 @@ class IsDistinctValidation(BooleanSeriesValidation):
     def default_message(self, warning: ValidationWarning):
         return 'contains values that are not unique'
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return ~series.duplicated(keep='first')
 
 
-class InListValidation(BooleanSeriesValidation):
+class InListValidation(SeriesValidation):
     """
     Checks that each element in this column is contained within a list of possibilities
     """
@@ -249,14 +249,14 @@ class InListValidation(BooleanSeriesValidation):
         values = ', '.join(str(v) for v in self.options)
         return 'is not in the list of legal options ({})'.format(values)
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         if self.case_sensitive:
             return series.isin(self.options)
         else:
             return series.str.lower().isin([s.lower() for s in self.options])
 
 
-class DateFormatValidation(BooleanSeriesValidation):
+class DateFormatValidation(SeriesValidation):
     """
     Checks that each element in this column is a valid date according to a provided format string
     """
@@ -280,5 +280,5 @@ class DateFormatValidation(BooleanSeriesValidation):
         except:
             return False
 
-    def select_cells(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> pd.Series:
         return series.astype(str).apply(self.valid_date)

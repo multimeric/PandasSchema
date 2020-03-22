@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 
 from pandas_schema.validations import *
-from pandas_schema.core import BooleanSeriesValidation, CombinedValidation, \
-    BaseValidation
+from pandas_schema.core import CombinedValidation, BaseValidation
 from pandas_schema.index import ColumnIndexer as ci
 from pandas_schema.schema import Schema
 from pandas_schema.column import column, column_sequence
@@ -86,12 +85,13 @@ class CustomElement(ValidationTestBase):
 
     def test_valid_inputs(self):
         assert len(
-            get_warnings(self.validator, ['_start_sdiyhsd',
-                                          '_start_234fpwunxc\n'])) == 0, 'did not accept valid inputs'
+            get_warnings(self.validator, ['_start_sdiyhsd', '_start_234fpwunxc\n'])
+        ) == 0, 'did not accept valid inputs'
 
     def test_invalid_inputs(self):
-        assert len(get_warnings(self.validator,
-                                ['fail', '324wfp9ni'])) == 2, 'accepted invalid inputs'
+        assert len(
+            get_warnings(self.validator, ['fail', '324wfp9ni'])
+        ) == 2, 'accepted invalid inputs'
 
 
 class LeadingWhitespace(ValidationTestBase):
