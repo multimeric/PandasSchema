@@ -4,7 +4,7 @@ import typing
 from pandas_schema.core import BaseValidation
 from pandas_schema.errors import PanSchArgumentError, PanSchInvalidSchemaError
 from pandas_schema.validation_warning import ValidationWarning
-from pandas_schema.index import PandasIndexer
+from pandas_schema.index import AxisIndexer
 
 
 class Schema:
@@ -24,7 +24,7 @@ class Schema:
 
         self.validations = list(validations)
 
-    def validate(self, df: pd.DataFrame, subset: PandasIndexer = None) -> typing.List[ValidationWarning]:
+    def validate(self, df: pd.DataFrame, subset: AxisIndexer = None) -> typing.List[ValidationWarning]:
         """
         Runs a full validation of the target DataFrame using the internal columns list
 

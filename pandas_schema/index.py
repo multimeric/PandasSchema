@@ -1,6 +1,6 @@
 from pandas_schema.errors import PanSchIndexError
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Optional
 import numpy
 import pandas
 from enum import Enum
@@ -17,7 +17,7 @@ class IndexType(Enum):
     LABEL = 1
 
 
-class PandasIndexer:
+class AxisIndexer:
     """
     An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
     """
@@ -47,7 +47,10 @@ class PandasIndexer:
             self.type = typ
         else:
             # If the type isn't provided, guess it based on the datatype of the index
-            if numpy.issubdtype(type(index), numpy.character):
+            if isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
+                # Boolean series can actually be used in loc or iloc, but let's assume it's only iloc for simplicity
+                self.type = IndexType.POSITION
+            elif numpy.issubdtype(type(index), numpy.character):
                 self.type = IndexType.LABEL
             elif numpy.issubdtype(type(index), numpy.int_):
                 self.type = IndexType.POSITION
@@ -84,14 +87,61 @@ class PandasIndexer:
         elif self.type == IndexType.POSITION:
             return self.index
 
+    def for_message(self) -> Optional[str]:
+        """
+        Returns a string that could be used to describe this indexer in a human readable way. However, returns None
+        if this indexer should not be described
+        """
+        if self.axis == 0:
+            prefix = "Row"
+        else:
+            prefix = "Column"
+
+        if isinstance(self.index, int):
+            idx = str(self.index)
+        elif isinstance(self.index, str):
+            idx = '"{}"'.format(self.index)
+        elif isinstance(self.index, slice):
+            if self.index == slice(None):
+                # If it's a slice of everything, skip this index
+                return None
+            else:
+                idx = str(self.index)
+        else:
+            idx = str(self.index)
+
+        return "{} {}".format(prefix, idx)
 
 
-
-class RowIndexer(PandasIndexer):
+class RowIndexer(AxisIndexer):
     def __init__(self, index: IndexValue, typ: IndexType = None):
         super().__init__(index=index, typ=typ, axis=0)
 
 
-class ColumnIndexer(PandasIndexer):
+class ColumnIndexer(AxisIndexer):
     def __init__(self, index: IndexValue, typ: IndexType = None):
         super().__init__(index=index, typ=typ, axis=1)
+
+
+@dataclass
+class DualAxisIndexer:
+    """
+    Completely specifies some subset of a DataFrame, using both axes
+    """
+    row_index: RowIndexer
+    col_index: ColumnIndexer
+
+    def __init__(self, row_index: Union[RowIndexer, IndexValue], col_index: Union[ColumnIndexer, IndexValue]):
+        # Use the validation and automatic conversion built into the AxisIndexer class to handle these inputs
+        if isinstance(row_index, RowIndexer):
+            self.row_index = row_index
+        else:
+            self.row_index = RowIndexer(index=row_index)
+
+        if isinstance(col_index, ColumnIndexer):
+            self.col_index = col_index
+        else:
+            self.col_index = ColumnIndexer(index=col_index)
+
+    def __call__(self, df: pandas.DataFrame):
+        return df.loc[self.row_index.for_loc(df), self.col_index.for_loc(df)]

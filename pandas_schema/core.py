@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
-from pandas_schema.index import PandasIndexer, IndexValue, IndexType, RowIndexer
+from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, DualAxisIndexer
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
@@ -21,52 +21,36 @@ class BaseValidation(abc.ABC):
     A validation is, broadly, just a function that maps a data frame to a list of errors
     """
 
-    def __init__(
-            self,
-            message: str = None,
-            negated: bool = False
-    ):
+    def __init__(self, message: str = None, ):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
             Otherwise it's a label (ie, index=0) indicates the column with the label of 0
         """
         self.custom_message = message
-        self.negated = negated
 
-    def validate(self, df: pd.DataFrame) -> typing.Iterable[ValidationWarning]:
+    def validate(self, df: pd.DataFrame) -> typing.Collection[ValidationWarning]:
         """
         Validates a data frame
         :param df: Data frame to validate
         :return: All validation failures detected by this validation
         """
-        selection = self.validation_series(df)
-
-        if self.negated:
-            # If self.negated (which is not the default), then we don't need to flip the booleans
-            failed = selection
-        else:
-            # In the normal case we do need to flip the booleans, since select_cells returns True for cells that pass
-            # the validation, and we want cells that failed it
-            failed = ~selection
+        failed = self.get_failed_index(df)
 
         # Slice out the failed items, then map each into a list of validation warnings at each respective index
         warnings = []
-        for index, value in df[failed].iteritems():
-            warnings.append(ValidationWarning(
-                ValidationWarning(self, {
-                    'row': index,
-                    'value': value
-                })
-            ))
+        for index, value in failed(df).iteritems():
+            warnings.append(ValidationWarning(self, {
+                'row': index,
+                'value': value
+            }))
         return warnings
 
     @abc.abstractmethod
-    def validation_series(self, df: pd.DataFrame) -> pd.Series:
+    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         """
-        Returns a scalar, series or DataFrame of booleans, which will then be broadcast
-        across the DataFrame according to broadcasting rules
-        :return:
+        Returns an indexer object that fully specifies which sections of the DataFrame this validation believes are
+        invalid (both row and column-wise)
         """
 
     def message(self, warning: ValidationWarning) -> str:
@@ -109,8 +93,7 @@ class BaseValidation(abc.ABC):
 class IndexValidation(BaseValidation):
     def __init__(
             self,
-            row_index: typing.Union[PandasIndexer, IndexValue],
-            col_index: typing.Union[PandasIndexer, IndexValue],
+            index: DualAxisIndexer,
             *args,
             **kwargs
     ):
@@ -120,27 +103,13 @@ class IndexValidation(BaseValidation):
             Otherwise it's a label (ie, index=0) indicates the column with the label of 0
         """
         super().__init__(*args, **kwargs)
-
-        if isinstance(row_index, PandasIndexer):
-            self.row_index = row_index
-        else:
-            # If it isn't already an indexer object, convert it to one
-            self.row_index = PandasIndexer(index=row_index)
-
-        if isinstance(col_index, PandasIndexer):
-            self.col_index = col_index
-        else:
-            # If it isn't already an indexer object, convert it to one
-            self.col_index = PandasIndexer(index=col_index)
+        self.index = index
 
     def apply_index(self, df: pd.DataFrame):
         """
         Select a series using the data stored in this validation
         """
-        if self.row_index is None or self.col_index is None:
-            raise PanSchNoIndexError()
-
-        return df.loc[self.row_index.for_loc(df), self.col_index.for_loc(df)]
+        return self.index(df)
 
     def prefix(self, warning: ValidationWarning):
         """
@@ -148,33 +117,49 @@ class IndexValidation(BaseValidation):
 
         This method is safe to override
         """
-        ret = ""
+        ret = []
 
-        if self.col_index is not None:
-            if self.col_index.type == IndexType.POSITION:
-                ret += 'Column {}'.format(self.col_index.index)
-            else:
-                ret += 'Column "{}"'.format(self.col_index.index)
-        if self.row_index is not None:
-            if self.row_index.type == IndexType.POSITION:
-                ret += 'Column {}'.format(self.row_index.index)
-            else:
-                ret += 'Column "{}"'.format(self.row_index.index)
+        if self.index.col_index is not None:
+            col_str = self.index.col_index.for_message()
+            if col_str:
+                ret.append(col_str)
+
+        ret.append('Row {}'.format(warning.props['row']))
+
+        ret.append('"{}"'.format(warning.props['value']))
+
+        return ' '.join(ret)
 
 
 class SeriesValidation(IndexValidation):
-    def __init__(self, index, *args, **kwargs):
+    def __init__(self, index, *args, negated: bool = False, **kwargs):
         super().__init__(
             *args,
-            col_index=index,
-            row_index=RowIndexer(index=slice(None), typ=IndexType.POSITION),
+            index=DualAxisIndexer(
+                col_index=index,
+                row_index=RowIndexer(index=slice(None), typ=IndexType.POSITION),
+            ),
             **kwargs
         )
+        self.negated = negated
 
-    def validation_series(self, df) -> pd.Series:
+    def get_failed_index(self, df) -> DualAxisIndexer:
         series = self.apply_index(df)
-        #TODO: Combine the index and the result series into one set of indexes
-        return self.validate_series(series)
+
+        selected = self.validate_series(series)
+
+        # Normally, validate_series returns the indices of the cells that passed the validation, but here we want the
+        # cells that failed it, so invert the series (unless this is a negated validation)
+        if self.negated:
+            row_index = selected
+        else:
+            row_index = ~selected
+
+        # Combine the index and the result series into one set of indexes
+        return DualAxisIndexer(
+            row_index=row_index,
+            col_index=self.index.col_index
+        )
 
     @abc.abstractmethod
     def validate_series(self, series: pd.Series) -> pd.Series:
@@ -183,6 +168,10 @@ class SeriesValidation(IndexValidation):
             passes the validation, otherwise False
         """
         pass
+
+    def __invert__(self):
+        self.negated = not self.negated
+        return self
 
 
 #
@@ -305,6 +294,5 @@ class CombinedValidation(BaseValidation):
 
         return combined
 
-    @property
     def default_message(self, warnings: ValidationWarning) -> str:
         return '({}) {} ({})'.format(self.v_a.message, self.operator, self.v_b.message)

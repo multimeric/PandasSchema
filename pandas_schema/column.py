@@ -1,12 +1,12 @@
 import typing
 
 import pandas_schema.core
-from pandas_schema.index import PandasIndexer
+from pandas_schema.index import AxisIndexer
 
 
 def column(
         validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
-        index: PandasIndexer = None,
+        index: AxisIndexer = None,
         override: bool = False,
         allow_empty=False
 ):
@@ -36,7 +36,7 @@ def column_sequence(
     """
     for i, valid in validations:
         if override or valid.index is None:
-            valid.index = PandasIndexer(i, typ='positional')
+            valid.index = AxisIndexer(i, typ='positional')
 #
 # def label_column(
 #         validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
