@@ -329,12 +329,12 @@ class IsDistinct(ValidationTestBase):
         ])) == 0, 'does not accept unique strings'
 
     def test_invalid_strings(self):
-        validation = self.validator.select_cells(pd.Series([
+        validation = get_warnings(self.validator, [
             '1',
             '1',
             '3',
             '4'
-        ]))
+        ])
 
         self.assertTrue((validation == pd.Series([
             True,
@@ -521,25 +521,21 @@ class CustomMessage(ValidationTestBase):
 
     def test_default_message(self):
         validator = InRangeValidation(min=4, index=0)
-        for error in validator.validate_series(pd.Series(
-                [
-                    1,
-                    2,
-                    3
-                ]
-        ), flatten=True):
+        for error in get_warnings(validator, [
+            1,
+            2,
+            3
+        ]):
             self.assertNotRegex(error.message, self.message,
                                 'Validator not using the default warning message!')
 
     def test_custom_message(self):
         validator = InRangeValidation(min=4, message=self.message, index=0)
-        for error in validator.validate_series(pd.Series(
-                [
-                    1,
-                    2,
-                    3
-                ]
-        ), flatten=True):
+        for error in get_warnings(validator, [
+            1,
+            2,
+            3
+        ] ):
             self.assertRegex(error.message, self.message,
                              'Validator not using the custom warning message!')
 

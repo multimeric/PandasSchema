@@ -5,7 +5,8 @@ import numpy
 import pandas
 from enum import Enum
 
-IndexValue = Union[numpy.string_, numpy.int_, str, int, slice]
+# IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+IndexValue = Union[numpy.ndarray, pandas.Series, str, int, slice]
 """
 A pandas index can either be an integer or string, or an array of either. This typing is a bit sketchy because really
 a lot of things are accepted here
@@ -47,6 +48,9 @@ class AxisIndexer:
             self.type = typ
         else:
             # If the type isn't provided, guess it based on the datatype of the index
+            if isinstance(index, slice):
+                # Slices can be used in either indexer
+                self.type = IndexType.POSITION
             if isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
                 # Boolean series can actually be used in loc or iloc, but let's assume it's only iloc for simplicity
                 self.type = IndexType.POSITION
@@ -74,9 +78,9 @@ class AxisIndexer:
         Returns this index as something that could be passed into df.loc[]
         """
         if self.type == IndexType.LABEL:
-            return df.axes[self.axis][self.index]
-        elif self.type == IndexType.POSITION:
             return self.index
+        elif self.type == IndexType.POSITION:
+            return df.axes[self.axis][self.index]
 
     def for_iloc(self, df):
         """

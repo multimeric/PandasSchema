@@ -8,12 +8,13 @@ import operator
 
 from . import column
 from .core import SeriesValidation, IndexValidation
+from .index import DualAxisIndexer
 from .validation_warning import ValidationWarning
 from .errors import PanSchArgumentError
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
 
-class CustomSeriesValidation(IndexValidation):
+class CustomSeriesValidation(SeriesValidation):
     """
     Validates using a user-provided function that operates on an entire series (for example by using one of the pandas
     Series methods: http://pandas.pydata.org/pandas-docs/stable/api.html#series)
@@ -37,7 +38,7 @@ class CustomSeriesValidation(IndexValidation):
         return self._validation(series)
 
 
-class CustomElementValidation(IndexValidation):
+class CustomElementValidation(SeriesValidation):
     """
     Validates using a user-provided function that operates on each element
     """
@@ -59,7 +60,7 @@ class CustomElementValidation(IndexValidation):
         return series.apply(self._validation)
 
 
-class InRangeValidation(IndexValidation):
+class InRangeValidation(SeriesValidation):
     """
     Checks that each element in the series is within a given numerical range
     """
@@ -97,14 +98,17 @@ class IsDtypeValidation(SeriesValidation):
         return 'has a dtype of {} which is not a subclass of the required type {}'.format(
             self.dtype, warning.props['dtype'])
 
-    def validate_series(self, series: pd.Series) -> typing.Iterable[ValidationWarning]:
-        if not np.issubdtype(series.dtype, self.dtype):
-            return [ValidationWarning(
-                self,
-                {'dtype': series.dtype}
-            )]
+    def validate_series(self, series: pd.Series):
+        if np.issubdtype(series.dtype, self.dtype):
+            return True
         else:
-            return []
+            return False
+        #     return [ValidationWarning(
+        #         self,
+        #         {'dtype': series.dtype}
+        #     )]
+        # else:
+        #     return []
 
 
 class CanCallValidation(SeriesValidation):
