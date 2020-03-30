@@ -329,19 +329,15 @@ class IsDistinct(ValidationTestBase):
         ])) == 0, 'does not accept unique strings'
 
     def test_invalid_strings(self):
-        validation = get_warnings(self.validator, [
+        warnings = get_warnings(self.validator, [
             '1',
             '1',
             '3',
             '4'
         ])
 
-        self.assertTrue((validation == pd.Series([
-            True,
-            False,
-            True,
-            True
-        ])).all(), 'did not identify the error')
+        assert len(warnings) == 1
+        assert warnings[0].props['row'] == 1, 'did not identify the error'
 
 
 class CompiledRegexMatch(ValidationTestBase):
@@ -411,22 +407,20 @@ class Dtype(ValidationTestBase):
         self.validator = IsDtypeValidation(np.number, index=0)
 
     def test_valid_items(self):
-        errors = self.validator.validate_series(pd.Series(
-            [
-                1,
-                2,
-                3
-            ]))
+        errors = get_warnings(self.validator, pd.Series([
+            1,
+            2,
+            3
+        ], dtype=np.int_))
 
         self.assertEqual(len(errors), 0)
 
     def test_invalid_items(self):
-        errors = self.validator.validate_series(pd.Series(
-            [
-                'a',
-                '',
-                'c'
-            ]))
+        errors = get_warnings(self.validator, [
+            'a',
+            '',
+            'c'
+        ])
 
         self.assertEqual(len(errors), 1)
         self.assertEqual(type(errors[0]), ValidationWarning)
@@ -535,7 +529,7 @@ class CustomMessage(ValidationTestBase):
             1,
             2,
             3
-        ] ):
+        ]):
             self.assertRegex(error.message, self.message,
                              'Validator not using the custom warning message!')
 

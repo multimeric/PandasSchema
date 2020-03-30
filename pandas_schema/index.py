@@ -17,7 +17,6 @@ class IndexType(Enum):
     POSITION = 0
     LABEL = 1
 
-
 class AxisIndexer:
     """
     An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
@@ -38,9 +37,15 @@ class AxisIndexer:
     The axis for the indexer
     """
 
-    def __init__(self, index: IndexValue, typ: IndexType = None, axis: int = 1):
+    negate: bool = False
+    """
+    If yes, return all values that this index does *not* select
+    """
+
+    def __init__(self, index: IndexValue, typ: IndexType = None, axis: int = 1, negate=False):
         self.index = index
         self.axis = axis
+        self.negate = negate
 
         if typ is not None:
             if not isinstance(typ, IndexType):
@@ -51,7 +56,9 @@ class AxisIndexer:
             if isinstance(index, slice):
                 # Slices can be used in either indexer
                 self.type = IndexType.POSITION
-            if isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
+            elif isinstance(index, list):
+                self.type = IndexType.POSITION
+            elif isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
                 # Boolean series can actually be used in loc or iloc, but let's assume it's only iloc for simplicity
                 self.type = IndexType.POSITION
             elif numpy.issubdtype(type(index), numpy.character):
@@ -116,13 +123,60 @@ class AxisIndexer:
 
         return "{} {}".format(prefix, idx)
 
+    @staticmethod
+    def invert_index(index: IndexValue):
+        if isinstance(index, slice) and index.start is None and index.stop is None:
+            # If this is a None slice, it would previously return everything, so make it return nothing
+            return []
+        elif isinstance(index, list) and len(index) == 0:
+            # If this is an empty list, it would previously return nothing, so make it return everything
+            return slice(None)
+        elif isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
+            # Boolean series have a built-in inversion
+            return ~index
+        # elif numpy.issubdtype(type(index), numpy.int_):
+        #     # Index series can't be inverted without knowing the original DF
+        else:
+            raise PanSchIndexError('Uninvertible type')
 
-class RowIndexer(AxisIndexer):
+    def __invert__(self) -> 'AxisIndexer':
+        """
+        Returns an index that is inverted (will return the opposite of what was previously specified)
+        """
+        return AxisIndexer(
+            index=self.invert_index(self.index),
+            typ=self.type,
+            axis=self.axis,
+        )
+
+
+class SubIndexerMeta(type):
+    def __init__(cls, *args, axis: int, **kwargs):
+        super().__init__(*args)
+        cls.axis = axis
+
+    def __new__(metacls, name, bases, namespace, **kargs):
+        return super().__new__(metacls, name, bases, namespace)
+
+    @classmethod
+    def __prepare__(metacls, name, bases, **kwargs):
+        return super().__prepare__(name, bases, **kwargs)
+
+    def __instancecheck__(self, instance):
+        # Any AxisIndexer can be considered a ColumnIndexer if it has axis 0
+        result = super().__instancecheck__(instance)
+        if not result and isinstance(instance, AxisIndexer) and instance.axis == self.axis:
+            return True
+        else:
+            return result
+
+
+class RowIndexer(AxisIndexer, axis=0, metaclass=SubIndexerMeta):
     def __init__(self, index: IndexValue, typ: IndexType = None):
         super().__init__(index=index, typ=typ, axis=0)
 
 
-class ColumnIndexer(AxisIndexer):
+class ColumnIndexer(AxisIndexer, axis=1, metaclass=SubIndexerMeta):
     def __init__(self, index: IndexValue, typ: IndexType = None):
         super().__init__(index=index, typ=typ, axis=1)
 
@@ -149,3 +203,20 @@ class DualAxisIndexer:
 
     def __call__(self, df: pandas.DataFrame):
         return df.loc[self.row_index.for_loc(df), self.col_index.for_loc(df)]
+
+    def invert(self, axis) -> 'AxisIndexer':
+        """
+        Returns an index that is inverted along the given axis. e.g. if axis=0, the column index stays the same, but
+        all row indices are inverted.
+        """
+        if axis == 0:
+            return DualAxisIndexer(
+                row_index=~self.row_index,
+                col_index=self.col_index
+            )
+
+        elif axis == 1:
+            return DualAxisIndexer(
+                row_index=self.row_index,
+                col_index=~self.col_index
+            )

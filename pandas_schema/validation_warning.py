@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 
-
 @dataclass
 class ValidationWarning:
     """
@@ -18,6 +17,10 @@ class ValidationWarning:
     example, if a cell in the DataFrame didn't match the validation, the props might
     include a `value` key, for storing what the actual value was
     """
+
+    def __init__(self, validation, **props):
+        self.validation = validation
+        self.props = props
 
     @property
     def message(self):

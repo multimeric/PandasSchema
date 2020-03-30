@@ -12,6 +12,7 @@ from .index import DualAxisIndexer
 from .validation_warning import ValidationWarning
 from .errors import PanSchArgumentError
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
+from pandas_schema.scope import ValidationScope
 
 
 class CustomSeriesValidation(SeriesValidation):
@@ -82,7 +83,7 @@ class InRangeValidation(SeriesValidation):
         return (series >= self.min) & (series < self.max)
 
 
-class IsDtypeValidation(SeriesValidation):
+class IsDtypeValidation(SeriesValidation, scope=ValidationScope.SERIES):
     """
     Checks that a series has a certain numpy dtype
     """

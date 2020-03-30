@@ -8,20 +8,29 @@ import typing
 import operator
 import re
 from dataclasses import dataclass
+import enum
 
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
 from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, DualAxisIndexer
+from pandas_schema.scope import ValidationScope
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
+SubSelection = typing.Union[pd.Series, pd.DataFrame, object]
+"""
+Anything that an indexer could return from a DataFrame
+"""
 
 class BaseValidation(abc.ABC):
     """
     A validation is, broadly, just a function that maps a data frame to a list of errors
     """
 
-    def __init__(self, message: str = None, ):
+    def __init_subclass__(cls, scope: ValidationScope=ValidationScope.CELL, **kwargs):
+        cls.scope = scope
+
+    def __init__(self, message: str = None):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
@@ -35,15 +44,39 @@ class BaseValidation(abc.ABC):
         :param df: Data frame to validate
         :return: All validation failures detected by this validation
         """
-        failed = self.get_failed_index(df)
+        index = self.get_failed_index(df)
+        failed = index(df)
 
-        # Slice out the failed items, then map each into a list of validation warnings at each respective index
+        # If it's am empty series/frame then this produced no warnings
+        if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
+            return []
+
+        # Depending on the scope, we produce the lists of warnings in different ways
         warnings = []
-        for index, value in failed(df).iteritems():
-            warnings.append(ValidationWarning(self, {
-                'row': index,
-                'value': value
-            }))
+        if isinstance(failed, pd.DataFrame):
+            if self.scope == ValidationScope.DATA_FRAME:
+                warnings.append(ValidationWarning(self))
+            elif self.scope == ValidationScope.SERIES:
+                for column in failed.columns:
+                    warnings.append(ValidationWarning(self, column=column))
+            elif self.scope == ValidationScope.CELL:
+                for column in failed.columns:
+                    for row, value in df[column].iteritems():
+                        warnings.append(ValidationWarning(self, column=column, row=row, value=value))
+        elif isinstance(failed, pd.Series):
+            if self.scope == ValidationScope.SERIES:
+                warnings.append(ValidationWarning(self, column=index.col_index.index))
+            elif self.scope == ValidationScope.CELL:
+                for row, value in failed.iteritems():
+                    warnings.append(ValidationWarning(self, column=index.col_index.index, row=row, value=value))
+        else:
+            warnings.append(ValidationWarning(
+                self,
+                column=index.col_index.index,
+                row=index.row_index.index,
+                value=failed
+            ))
+
         return warnings
 
     @abc.abstractmethod
@@ -130,8 +163,46 @@ class IndexValidation(BaseValidation):
 
         return ' '.join(ret)
 
+    def get_failed_index(self, df) -> DualAxisIndexer:
+        selection = self.apply_index(df)
+        # We invert here because the validation returns True for indices that pass the validation, but we want to
+        # select indices that fail
+        return self.validate_selection(selection).invert(axis=0)
+
+        # Normally, validate_series returns the indices of the cells that passed the validation, but here we want the
+        # cells that failed it, so invert the series (unless this is a negated validation)
+        # if self.negated:
+        #     row_index = selected
+        # else:
+        #     row_index = ~selected
+
+        # Combine the index and the result series into one set of indexes
+        # return DualAxisIndexer(
+        #     row_index=row_index
+        #     col_index=self.index.col_index
+        # )
+
+    @abc.abstractmethod
+    def validate_selection(self, selection: SubSelection) -> DualAxisIndexer:
+        """
+        Given a series, return an indexer that
+            passes the validation, otherwise False
+        """
+        pass
+
+    def negate(self, axis: int):
+        """
+        Returns a copy of this validation, but with an inverted indexer
+        """
+        return self.__class__(index=self.index.invert(axis))
+
 
 class SeriesValidation(IndexValidation):
+    """
+    A type of IndexValidation that operates only on a Series. This class mostly adds utility methods rather than
+    any particular functionality.
+    """
+
     def __init__(self, index, *args, negated: bool = False, **kwargs):
         super().__init__(
             *args,
@@ -143,38 +214,36 @@ class SeriesValidation(IndexValidation):
         )
         self.negated = negated
 
-    def get_failed_index(self, df) -> DualAxisIndexer:
-        series = self.apply_index(df)
+    def validate_selection(self, selection: SubSelection) -> DualAxisIndexer:
+        """
+        Since this is a SeriesValidation, we can simplify the validation. Now we only have to ask the subclass to take
+        a Series and return a Series (or slice) that indicates the successful cells (or series). Then we can combine
+        this with the current index to produce an indexer that finds all failing cells in the DF
+        """
+        row_index = self.validate_series(selection)
 
-        selected = self.validate_series(series)
+        # As a convenience, we allow validate_series to return a boolean. If True it indicates everything passed, so
+        # convert it to a None slice which returns everything, and if false convert it to an empty list, an indexer
+        # that returns nothing
+        if isinstance(row_index, bool):
+            if row_index:
+                row_index = slice(None)
+            else:
+                row_index = []
 
-        # Normally, validate_series returns the indices of the cells that passed the validation, but here we want the
-        # cells that failed it, so invert the series (unless this is a negated validation)
-        if self.negated:
-            row_index = selected
-        else:
-            row_index = ~selected
-
-        # Combine the index and the result series into one set of indexes
         return DualAxisIndexer(
             row_index=row_index,
             col_index=self.index.col_index
         )
 
     @abc.abstractmethod
-    def validate_series(self, series: pd.Series) -> pd.Series:
+    def validate_series(self, series: pd.Series) -> IndexValue:
         """
         Given a series, return a bool Series that has values of True if the series
             passes the validation, otherwise False
         """
-        pass
-
-    def __invert__(self):
-        self.negated = not self.negated
-        return self
 
 
-#
 # class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
 #     """
 #     Validation is defined by the function :py:meth:~select_cells that returns a boolean series.
