@@ -8,3 +8,4 @@
 * [x] Fix messages
 * [x] Re-implement the or/and using operators
 * [ ] Allow and/or operators between Series-level and row-level validations
+* [ ] Separate ValidationClasses for each scope

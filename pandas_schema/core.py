@@ -9,6 +9,7 @@ import operator
 import re
 from dataclasses import dataclass
 import enum
+import copy
 
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
@@ -22,21 +23,50 @@ SubSelection = typing.Union[pd.Series, pd.DataFrame, object]
 Anything that an indexer could return from a DataFrame
 """
 
+
 class BaseValidation(abc.ABC):
     """
     A validation is, broadly, just a function that maps a data frame to a list of errors
     """
 
-    def __init_subclass__(cls, scope: ValidationScope=ValidationScope.CELL, **kwargs):
+    def __init_subclass__(cls, scope: ValidationScope = ValidationScope.CELL, **kwargs):
         cls.scope = scope
 
-    def __init__(self, message: str = None):
+    def __init__(self, message: str = None, negated: bool = False):
         """
         Creates a new IndexSeriesValidation
         :param index: An index with which to select the series
             Otherwise it's a label (ie, index=0) indicates the column with the label of 0
         """
         self.custom_message = message
+        self.negated = negated
+
+    def make_df_warning(self, df: pd.DataFrame) -> ValidationWarning:
+        """
+        Creates a DF-scope warning. Can be overridden by child classes
+        """
+        return ValidationWarning(self)
+
+    def make_series_warning(self, df: pd.DataFrame, column: str, series: pd.Series) -> ValidationWarning:
+        """
+        Creates a series-scope warning. Can be overridden by child classes
+        """
+        return ValidationWarning(self, column=column)
+
+    def make_cell_warning(self, df: pd.DataFrame, column: str, row: int, value,
+                          series: pd.Series = None) -> ValidationWarning:
+        """
+        Creates a cell-scope warning. Can be overridden by child classes
+        """
+        return ValidationWarning(self, column=column, row=row, value=value)
+
+    def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
+        """
+        Can be implemented by sub-classes to provide negation behaviour. If implemented, this should return a new
+        indexer that returns the opposite of what it normally would. The definition of opposite may vary from validation
+        to validation
+        """
+        raise NotImplementedError()
 
     def validate(self, df: pd.DataFrame) -> typing.Collection[ValidationWarning]:
         """
@@ -45,6 +75,8 @@ class BaseValidation(abc.ABC):
         :return: All validation failures detected by this validation
         """
         index = self.get_failed_index(df)
+        if self.negated:
+            index = self.apply_negation(index)
         failed = index(df)
 
         # If it's am empty series/frame then this produced no warnings
@@ -55,27 +87,27 @@ class BaseValidation(abc.ABC):
         warnings = []
         if isinstance(failed, pd.DataFrame):
             if self.scope == ValidationScope.DATA_FRAME:
-                warnings.append(ValidationWarning(self))
+                warnings.append(self.make_df_warning(df))
             elif self.scope == ValidationScope.SERIES:
-                for column in failed.columns:
-                    warnings.append(ValidationWarning(self, column=column))
+                for column, series in failed.iteritems():
+                    warnings.append(self.make_series_warning(df=df, column=column, series=series))
             elif self.scope == ValidationScope.CELL:
-                for column in failed.columns:
+                for column, series in failed.iteritems():
                     for row, value in df[column].iteritems():
-                        warnings.append(ValidationWarning(self, column=column, row=row, value=value))
+                        warnings.append(
+                            self.make_cell_warning(df=df, column=column, series=series, row=row, value=value))
         elif isinstance(failed, pd.Series):
             if self.scope == ValidationScope.SERIES:
-                warnings.append(ValidationWarning(self, column=index.col_index.index))
+                warnings.append(self.make_series_warning(df=df, column=index.col_index.index, series=failed))
             elif self.scope == ValidationScope.CELL:
                 for row, value in failed.iteritems():
-                    warnings.append(ValidationWarning(self, column=index.col_index.index, row=row, value=value))
+                    warnings.append(
+                        self.make_cell_warning(df=df, column=index.col_index.index, series=failed, row=row,
+                                               value=value))
         else:
-            warnings.append(ValidationWarning(
-                self,
-                column=index.col_index.index,
-                row=index.row_index.index,
-                value=failed
-            ))
+            warnings.append(
+                self.make_cell_warning(df=df, column=index.col_index.index, row=index.row_index.index, value=failed)
+            )
 
         return warnings
 
@@ -122,6 +154,14 @@ class BaseValidation(abc.ABC):
 
         return CombinedValidation(self, other, operator='or')
 
+    def __invert__(self):
+        """
+        Return a copy of this, except that it will return indices of those that would normally pass this validation,
+        in the same series
+        """
+        clone = copy.copy(self)
+        clone.negated = True
+        return clone
 
 class IndexValidation(BaseValidation):
     def __init__(
@@ -203,7 +243,7 @@ class SeriesValidation(IndexValidation):
     any particular functionality.
     """
 
-    def __init__(self, index, *args, negated: bool = False, **kwargs):
+    def __init__(self, index, *args, **kwargs):
         super().__init__(
             *args,
             index=DualAxisIndexer(
@@ -212,7 +252,14 @@ class SeriesValidation(IndexValidation):
             ),
             **kwargs
         )
-        self.negated = negated
+
+    def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
+        """
+        When a SeriesValidation is negated, it means that we should invert only the row indices returned by the
+        validation. This makes the validation return warnings from the same subset of the DataFrame, but makes cells
+        pass if they would fail, and fail if they would pass
+        """
+        return index.invert(axis=0)
 
     def validate_selection(self, selection: SubSelection) -> DualAxisIndexer:
         """
@@ -242,6 +289,7 @@ class SeriesValidation(IndexValidation):
         Given a series, return a bool Series that has values of True if the series
             passes the validation, otherwise False
         """
+
 
 
 # class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):

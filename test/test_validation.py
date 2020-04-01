@@ -444,14 +444,8 @@ class Dtype(ValidationTestBase):
 
         errors = schema.validate(df)
 
-        self.assertEqual(
-            [x.props for x in errors],
-            [
-                {'dtype': np.object},
-                {'dtype': np.int64},
-                {'dtype': np.float64},
-            ]
-        )
+        for error, correct_dtype in zip(errors, [np.object, np.int64, np.float64]):
+            assert error.props['dtype'] == correct_dtype
 
 
 class Negate(ValidationTestBase):

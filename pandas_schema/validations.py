@@ -99,6 +99,13 @@ class IsDtypeValidation(SeriesValidation, scope=ValidationScope.SERIES):
         return 'has a dtype of {} which is not a subclass of the required type {}'.format(
             self.dtype, warning.props['dtype'])
 
+    def make_series_warning(self, df: pd.DataFrame, column: str, series: pd.Series) -> ValidationWarning:
+        return ValidationWarning(
+            self,
+            column=column,
+            dtype=series.dtype
+        )
+
     def validate_series(self, series: pd.Series):
         if np.issubdtype(series.dtype, self.dtype):
             return True
