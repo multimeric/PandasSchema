@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 import typing
 import operator
-import re
 from dataclasses import dataclass
 import enum
 import copy
@@ -14,7 +13,8 @@ import copy
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
-from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, DualAxisIndexer
+from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, \
+    DualAxisIndexer
 from pandas_schema.scope import ValidationScope
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
@@ -47,7 +47,8 @@ class BaseValidation(abc.ABC):
         """
         return ValidationWarning(self)
 
-    def make_series_warning(self, df: pd.DataFrame, column: str, series: pd.Series) -> ValidationWarning:
+    def make_series_warning(self, df: pd.DataFrame, column: str,
+                            series: pd.Series) -> ValidationWarning:
         """
         Creates a series-scope warning. Can be overridden by child classes
         """
@@ -68,48 +69,88 @@ class BaseValidation(abc.ABC):
         """
         raise NotImplementedError()
 
-    def validate(self, df: pd.DataFrame) -> typing.Collection[ValidationWarning]:
+    def index_to_warnings_series(self, df: pd.DataFrame, failed: DualAxisIndexer):
+        # If it's am empty series/frame then this produced no warnings
+        if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
+            return []
+
+        # Depending on the scope, we produce the lists of warnings in different ways
+        if isinstance(failed, pd.DataFrame):
+            if self.scope == ValidationScope.DATA_FRAME:
+                return [self.make_df_warning(df)]
+            elif self.scope == ValidationScope.SERIES:
+                return df.apply(lambda series: self.make_series_warning(
+                    df=df,
+                    column=series.name,
+                    series=series
+                ), axis=0)
+            elif self.scope == ValidationScope.CELL:
+                return df.apply(lambda series: series.to_frame().apply(
+                    lambda cell: self.make_cell_warning(
+                        df=df,
+                        column=series.name,
+                        series=series,
+                        row=cell.name,
+                        value=cell
+                    )))
+        elif isinstance(failed, pd.Series):
+            if self.scope == ValidationScope.SERIES:
+                return [self.make_series_warning(
+                    df=df,
+                    column=index.col_index.index,
+                    series=failed
+                )]
+            elif self.scope == ValidationScope.CELL:
+                return failed.to_frame().apply(lambda cell: self.make_cell_warning(
+                    df=df,
+                    column=failed.name,
+                    series=failed,
+                    row=cell.name,
+                    value=cell[0]
+                ), axis=1)
+        else:
+            return [self.make_cell_warning(
+                df=df,
+                column=index.col_index.index,
+                row=index.row_index.index,
+                value=failed)
+            ]
+
+    def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         """
-        Validates a data frame
-        :param df: Data frame to validate
-        :return: All validation failures detected by this validation
+        Converts an index into a series of warnings each corresponding to an issue
+        with the DataFrame at the same index.
         """
         index = self.get_failed_index(df)
         if self.negated:
             index = self.apply_negation(index)
         failed = index(df)
 
-        # If it's am empty series/frame then this produced no warnings
-        if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
-            return []
+        return self.index_to_warnings_series(df, failed)
 
-        # Depending on the scope, we produce the lists of warnings in different ways
-        warnings = []
+    @staticmethod
+    def to_warning_list(failed):
         if isinstance(failed, pd.DataFrame):
-            if self.scope == ValidationScope.DATA_FRAME:
-                warnings.append(self.make_df_warning(df))
-            elif self.scope == ValidationScope.SERIES:
-                for column, series in failed.iteritems():
-                    warnings.append(self.make_series_warning(df=df, column=column, series=series))
-            elif self.scope == ValidationScope.CELL:
-                for column, series in failed.iteritems():
-                    for row, value in df[column].iteritems():
-                        warnings.append(
-                            self.make_cell_warning(df=df, column=column, series=series, row=row, value=value))
+            return failed.to_numpy().tolist()
         elif isinstance(failed, pd.Series):
-            if self.scope == ValidationScope.SERIES:
-                warnings.append(self.make_series_warning(df=df, column=index.col_index.index, series=failed))
-            elif self.scope == ValidationScope.CELL:
-                for row, value in failed.iteritems():
-                    warnings.append(
-                        self.make_cell_warning(df=df, column=index.col_index.index, series=failed, row=row,
-                                               value=value))
+            return failed.tolist()
         else:
-            warnings.append(
-                self.make_cell_warning(df=df, column=index.col_index.index, row=index.row_index.index, value=failed)
-            )
+            return failed
 
-        return warnings
+    def validate(self, df: pd.DataFrame) -> typing.Collection[ValidationWarning]:
+        """
+        Validates a data frame
+        :param df: Data frame to validate
+        :return: All validation failures detected by this validation
+        """
+        # index = self.get_failed_index(df)
+        # if self.negated:
+        #     index = self.apply_negation(index)
+        # failed = index(df)
+
+        failed = self.get_warnings_series(df)
+        return self.to_warning_list(failed)
+
 
     @abc.abstractmethod
     def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
@@ -162,6 +203,7 @@ class BaseValidation(abc.ABC):
         clone = copy.copy(self)
         clone.negated = True
         return clone
+
 
 class IndexValidation(BaseValidation):
     def __init__(
@@ -291,7 +333,6 @@ class SeriesValidation(IndexValidation):
         """
 
 
-
 # class BooleanSeriesValidation(IndexValidation, WarningSeriesGenerator):
 #     """
 #     Validation is defined by the function :py:meth:~select_cells that returns a boolean series.
@@ -372,15 +413,50 @@ class CombinedValidation(BaseValidation):
     Validates if one and/or the other validation is true for an element
     """
 
-    def message(self, warning: ValidationWarning) -> str:
-        pass
-
-    def __init__(self, validation_a: BaseValidation,
-                 validation_b: BaseValidation, operator: str):
+    def __init__(
+            self,
+            validation_a: BaseValidation,
+            validation_b: BaseValidation,
+            operator: typing.Callable,
+            axis='rows'
+    ):
         super().__init__()
         self.operator = operator
         self.left = validation_a
         self.right = validation_b
+        self.axis = 1
+
+    def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
+        pass
+
+    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+        left_failed = self.left.get_failed_index(df)
+        right_failed = self.right.get_failed_index(df)
+
+        if self.axis == 'rows':
+            assert left_failed.col_index == right_failed.col_index
+            assert isinstance(left_failed.col_index.index, pd.Series)
+            return DualAxisIndexer(
+                row_index=self.operator(left_failed.row_index, right_failed.row_index),
+                col_index=left_failed.col_index
+            )
+
+        elif self.axis == 'columns':
+            assert left_failed.row_index == right_failed.row_index
+            assert isinstance(left_failed.row_index.index, pd.Series)
+            return DualAxisIndexer(
+                row_index=left_failed.row_index,
+                col_index=self.operator(left_failed.col_index, right_failed.col_index)
+            )
+
+        else:
+            raise Exception()
+
+    def prefix(self, warning: ValidationWarning):
+        pass
+
+    def message(self, warning: ValidationWarning) -> str:
+        pass
 
     def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
@@ -409,7 +485,11 @@ class CombinedValidation(BaseValidation):
         else:
             raise Exception('Operator must be "and" or "or"')
 
-        return combined
+        warnings = (
+            self.index_to_warnings_series(df, left_errors) +
+            self.index_to_warnings_series(df, right_errors)
+        )
+        return combined(warnings)
 
     def default_message(self, warnings: ValidationWarning) -> str:
         return '({}) {} ({})'.format(self.v_a.message, self.operator, self.v_b.message)

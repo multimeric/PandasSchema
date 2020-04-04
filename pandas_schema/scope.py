@@ -9,4 +9,5 @@ class ValidationScope(enum.Enum):
     DATA_FRAME = 0
     SERIES = 1
     CELL = 2
+    ROW = 3
 
