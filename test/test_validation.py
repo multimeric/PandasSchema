@@ -484,19 +484,22 @@ class Or(ValidationTestBase):
         )
 
     def test_valid_items(self):
-        assert len(get_warnings(self.validator, [
+        warnings = get_warnings(self.validator, [
             'pass',
             'yes',
             'passyes',
             '345yes345'
-        ])) == 0, 'rejects values that should pass'
+        ])
+        assert len(warnings) == 0, 'rejects values that should pass'
 
     def test_invalid_items(self):
-        assert len(get_warnings(self.validator, [
+        warnings = get_warnings(self.validator, [
             'fail',
             'YES',
             'YPESS'
-        ])) == 6, 'accepts values that should pass'
+        ])
+
+        assert len(warnings) == 6, 'accepts values that should pass'
 
 
 class CustomMessage(ValidationTestBase):

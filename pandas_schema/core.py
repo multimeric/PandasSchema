@@ -69,7 +69,8 @@ class BaseValidation(abc.ABC):
         """
         raise NotImplementedError()
 
-    def index_to_warnings_series(self, df: pd.DataFrame, failed: DualAxisIndexer):
+    def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed):
+
         # If it's am empty series/frame then this produced no warnings
         if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
             return []
@@ -97,7 +98,7 @@ class BaseValidation(abc.ABC):
             if self.scope == ValidationScope.SERIES:
                 return [self.make_series_warning(
                     df=df,
-                    column=index.col_index.index,
+                    column=failed.col_index.index,
                     series=failed
                 )]
             elif self.scope == ValidationScope.CELL:
@@ -111,8 +112,8 @@ class BaseValidation(abc.ABC):
         else:
             return [self.make_cell_warning(
                 df=df,
-                column=index.col_index.index,
-                row=index.row_index.index,
+                column=self.index.col_index.index,
+                row=self.index.row_index.index,
                 value=failed)
             ]
 
@@ -126,7 +127,7 @@ class BaseValidation(abc.ABC):
             index = self.apply_negation(index)
         failed = index(df)
 
-        return self.index_to_warnings_series(df, failed)
+        return self.index_to_warnings_series(df, index, failed)
 
     @staticmethod
     def to_warning_list(failed):
@@ -150,7 +151,6 @@ class BaseValidation(abc.ABC):
 
         failed = self.get_warnings_series(df)
         return self.to_warning_list(failed)
-
 
     @abc.abstractmethod
     def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
@@ -193,7 +193,7 @@ class BaseValidation(abc.ABC):
                                       'Validations that subclass {}'.format(
                 self.__class__))
 
-        return CombinedValidation(self, other, operator='or')
+        return CombinedValidation(self, other, operator=operator.or_)
 
     def __invert__(self):
         """
@@ -424,7 +424,7 @@ class CombinedValidation(BaseValidation):
         self.operator = operator
         self.left = validation_a
         self.right = validation_b
-        self.axis = 1
+        self.axis = axis
 
     def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
         pass
@@ -435,18 +435,24 @@ class CombinedValidation(BaseValidation):
 
         if self.axis == 'rows':
             assert left_failed.col_index == right_failed.col_index
-            assert isinstance(left_failed.col_index.index, pd.Series)
+            assert isinstance(left_failed.row_index.index, pd.Series)
             return DualAxisIndexer(
-                row_index=self.operator(left_failed.row_index, right_failed.row_index),
+                row_index=self.operator(
+                    left_failed.row_index.index,
+                    right_failed.row_index.index
+                ),
                 col_index=left_failed.col_index
             )
 
         elif self.axis == 'columns':
             assert left_failed.row_index == right_failed.row_index
-            assert isinstance(left_failed.row_index.index, pd.Series)
+            assert isinstance(left_failed.col_index.index, pd.Series)
             return DualAxisIndexer(
                 row_index=left_failed.row_index,
-                col_index=self.operator(left_failed.col_index, right_failed.col_index)
+                col_index=self.operator(
+                    left_failed.col_index.index,
+                    right_failed.col_index.index
+                )
             )
 
         else:
@@ -458,38 +464,70 @@ class CombinedValidation(BaseValidation):
     def message(self, warning: ValidationWarning) -> str:
         pass
 
-    def get_warning_series(self, df: pd.DataFrame) -> pd.Series:
+    def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
-        left_errors = self.left.validate(df)
-        right_errors = self.right.validate(df)
+        left_index = self.left.get_failed_index(df)
+        right_index = self.right.get_failed_index(df)
 
-        if self.operator == 'and':
-            # If it's an "and" validation, left, right, or both failing means an error,
-            # so we can simply concatenate the lists of errors
-            combined = left_errors.combine(
-                right_errors,
-                func=operator.add,
-                fill_value=[]
+        if self.axis == 'rows':
+            assert left_index.col_index == right_index.col_index
+            assert isinstance(left_index.row_index.index, pd.Series)
+            combined = DualAxisIndexer(
+                row_index=self.operator(
+                    left_index.row_index.index,
+                    right_index.row_index.index
+                ),
+                col_index=left_index.col_index
             )
-        elif self.operator == 'or':
-            # [error] and [] = []
-            # [error_1] and [error_2] = [error_2]
-            # [] and [] = []
-            # Thus, we can use the and operator to implement "or" validations
-            combined = left_errors.combine(
-                right_errors,
-                func=lambda l, r: l + r if l and r else [],
-                fill_value=[]
+
+        elif self.axis == 'columns':
+            assert left_index.row_index == right_index.row_index
+            assert isinstance(left_index.col_index.index, pd.Series)
+            combined = DualAxisIndexer(
+                row_index=left_index.row_index,
+                col_index=self.operator(
+                    left_index.col_index.index,
+                    right_index.col_index.index
+                )
             )
-            # func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
+
         else:
-            raise Exception('Operator must be "and" or "or"')
+            raise Exception()
 
-        warnings = (
-            self.index_to_warnings_series(df, left_errors) +
-            self.index_to_warnings_series(df, right_errors)
-        )
-        return combined(warnings)
+        # if self.operator == 'and':
+        #     # If it's an "and" validation, left, right, or both failing means an error,
+        #     # so we can simply concatenate the lists of errors
+        #     combined = left_errors.combine(
+        #         right_errors,
+        #         func=operator.add,
+        #         fill_value=[]
+        #     )
+        # elif self.operator == 'or':
+        #     # [error] and [] = []
+        #     # [error_1] and [error_2] = [error_2]
+        #     # [] and [] = []
+        #     # Thus, we can use the and operator to implement "or" validations
+        #     combined = left_errors.combine(
+        #         right_errors,
+        #         func=lambda l, r: l + r if l and r else [],
+        #         fill_value=[]
+        #     )
+        #     # func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
+        # else:
+        #     raise Exception('Operator must be "and" or "or"')
+        #
+        left_failed = left_index(df)
+        right_failed = right_index(df)
+
+        warnings = pd.concat([
+            self.left.index_to_warnings_series(df, left_index, left_failed),
+            self.right.index_to_warnings_series(df, right_index, right_failed)
+        ])#, join='inner', keys=['inner', 'outer'])
+
+        if self.axis == 'rows':
+            return warnings[combined.row_index.index]
+        else:
+            return warnings[combined.col_index.index]
 
     def default_message(self, warnings: ValidationWarning) -> str:
         return '({}) {} ({})'.format(self.v_a.message, self.operator, self.v_b.message)
