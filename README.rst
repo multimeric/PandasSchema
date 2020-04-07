@@ -1,4 +1,3 @@
-
 PandasSchema
 ************
 
@@ -14,7 +13,7 @@ quickly and efficiently.
 
 For example, say your code expects a CSV that looks a bit like this:
 
-.. code:: default
+.. code::
 
    Given Name,Family Name,Age,Sex,Customer ID
    Gerald,Hampton,82,Male,2582GABK

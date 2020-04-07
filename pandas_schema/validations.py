@@ -34,7 +34,6 @@ class CustomSeriesValidation(SeriesValidation):
         super().__init__(*args, **kwargs)
         self._validation = validation
 
-
     def validate_series(self, series: pd.Series) -> pd.Series:
         return self._validation(series)
 

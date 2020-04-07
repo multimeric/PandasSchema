@@ -397,6 +397,27 @@ class InRange(ValidationTestBase):
             3
         ])) == 3, 'Incorrectly accepts integers outside of the range'
 
+    def test_valid_character_items(self):
+        self.validate_and_compare(
+            [
+                7,
+                "8",
+                8
+            ],
+            True,
+            "Does not accept integers provided as a string"
+        )
+
+    def test_invalid_character_items(self):
+        self.validate_and_compare(
+            [
+                "seven",
+                "eight",
+            ],
+            False,
+            "Incorrectly accepts items with non numerical text"
+        )
+
 
 class Dtype(ValidationTestBase):
     """
@@ -446,7 +467,6 @@ class Dtype(ValidationTestBase):
 
         for error, correct_dtype in zip(errors, [np.object, np.int64, np.float64]):
             assert error.props['dtype'] == correct_dtype
-
 
 class Negate(ValidationTestBase):
     """
