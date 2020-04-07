@@ -17,6 +17,7 @@ class IndexType(Enum):
     POSITION = 0
     LABEL = 1
 
+@dataclass(init=False)
 class AxisIndexer:
     """
     An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
@@ -181,7 +182,7 @@ class ColumnIndexer(AxisIndexer, axis=1, metaclass=SubIndexerMeta):
         super().__init__(index=index, typ=typ, axis=1)
 
 
-@dataclass
+@dataclass(init=False)
 class DualAxisIndexer:
     """
     Completely specifies some subset of a DataFrame, using both axes
@@ -200,6 +201,7 @@ class DualAxisIndexer:
             self.col_index = col_index
         else:
             self.col_index = ColumnIndexer(index=col_index)
+
 
     def __call__(self, df: pandas.DataFrame):
         return df.loc[self.row_index.for_loc(df), self.col_index.for_loc(df)]
