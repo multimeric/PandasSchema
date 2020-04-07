@@ -98,13 +98,13 @@ class BaseValidation(abc.ABC):
             if self.scope == ValidationScope.SERIES:
                 return [self.make_series_warning(
                     df=df,
-                    column=failed.col_index.index,
+                    column=index.col_index.index,
                     series=failed
                 )]
             elif self.scope == ValidationScope.CELL:
                 return failed.to_frame().apply(lambda cell: self.make_cell_warning(
                     df=df,
-                    column=failed.name,
+                    column=index.col_index.index,
                     series=failed,
                     row=cell.name,
                     value=cell[0]
@@ -153,10 +153,17 @@ class BaseValidation(abc.ABC):
         return self.to_warning_list(failed)
 
     @abc.abstractmethod
-    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+    def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         """
         Returns an indexer object that fully specifies which sections of the DataFrame this validation believes are
         invalid (both row and column-wise)
+        """
+
+    @abc.abstractmethod
+    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+        """
+        Returns an indexer object that fully specifies which sections of the DataFrame this validation believes are
+        valid (both row and column-wise)
         """
 
     def message(self, warning: ValidationWarning) -> str:
@@ -245,11 +252,12 @@ class IndexValidation(BaseValidation):
 
         return ' '.join(ret)
 
-    def get_failed_index(self, df) -> DualAxisIndexer:
+    def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         selection = self.apply_index(df)
-        # We invert here because the validation returns True for indices that pass the validation, but we want to
-        # select indices that fail
-        return self.validate_selection(selection).invert(axis=0)
+        return self.validate_selection(selection)
+
+    def get_failed_index(self, df) -> DualAxisIndexer:
+        return self.get_passed_index(df).invert(axis=0)
 
         # Normally, validate_series returns the indices of the cells that passed the validation, but here we want the
         # cells that failed it, so invert the series (unless this is a negated validation)
@@ -428,35 +436,47 @@ class CombinedValidation(BaseValidation):
 
     def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
         pass
-
-    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
-        left_failed = self.left.get_failed_index(df)
-        right_failed = self.right.get_failed_index(df)
-
+    
+    def combine_indices(self, left: DualAxisIndexer, right: DualAxisIndexer) -> DualAxisIndexer:
+        """
+        Utility method for combining the indexers using boolean logic
+        :param left:
+        :param right:
+        :return:
+        """
+        # TODO: convert axis into an integer and apply proper panas logic
         if self.axis == 'rows':
-            assert left_failed.col_index == right_failed.col_index
-            assert isinstance(left_failed.row_index.index, pd.Series)
+            assert left.col_index == right.col_index
+            assert isinstance(left.row_index.index, pd.Series)
             return DualAxisIndexer(
                 row_index=self.operator(
-                    left_failed.row_index.index,
-                    right_failed.row_index.index
+                    left.row_index.index,
+                    right.row_index.index
                 ),
-                col_index=left_failed.col_index
+                col_index=left.col_index
             )
 
         elif self.axis == 'columns':
-            assert left_failed.row_index == right_failed.row_index
-            assert isinstance(left_failed.col_index.index, pd.Series)
+            assert left.row_index == right.row_index
+            assert isinstance(left.col_index.index, pd.Series)
             return DualAxisIndexer(
-                row_index=left_failed.row_index,
+                row_index=left.row_index,
                 col_index=self.operator(
-                    left_failed.col_index.index,
-                    right_failed.col_index.index
+                    left.col_index.index,
+                    right.col_index.index
                 )
             )
 
         else:
             raise Exception()
+
+    def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+        left_passed = self.left.get_passed_index(df)
+        right_passed = self.right.get_passed_index(df)
+        return self.combine_indices(left_passed, right_passed)
+
+    def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+        return self.get_passed_index(df).invert(self.axis)
 
     def prefix(self, warning: ValidationWarning):
         pass
@@ -466,64 +486,25 @@ class CombinedValidation(BaseValidation):
 
     def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
-        left_index = self.left.get_failed_index(df)
-        right_index = self.right.get_failed_index(df)
+        left_index = self.left.get_passed_index(df)
+        right_index = self.right.get_passed_index(df)
 
-        if self.axis == 'rows':
-            assert left_index.col_index == right_index.col_index
-            assert isinstance(left_index.row_index.index, pd.Series)
-            combined = DualAxisIndexer(
-                row_index=self.operator(
-                    left_index.row_index.index,
-                    right_index.row_index.index
-                ),
-                col_index=left_index.col_index
-            )
+        # Combine them with boolean logic
+        # We have to invert the combined index because left and right are *passed* indices not failed ones
+        combined = self.combine_indices(left_index, right_index).invert(axis=0)
 
-        elif self.axis == 'columns':
-            assert left_index.row_index == right_index.row_index
-            assert isinstance(left_index.col_index.index, pd.Series)
-            combined = DualAxisIndexer(
-                row_index=left_index.row_index,
-                col_index=self.operator(
-                    left_index.col_index.index,
-                    right_index.col_index.index
-                )
-            )
+        # Slice out the failed data
+        # We have to invert these because left_index and right_index are passed indices
+        left_failed = left_index.invert(axis=0)(df)
+        right_failed = right_index.invert(axis=0)(df)
 
-        else:
-            raise Exception()
-
-        # if self.operator == 'and':
-        #     # If it's an "and" validation, left, right, or both failing means an error,
-        #     # so we can simply concatenate the lists of errors
-        #     combined = left_errors.combine(
-        #         right_errors,
-        #         func=operator.add,
-        #         fill_value=[]
-        #     )
-        # elif self.operator == 'or':
-        #     # [error] and [] = []
-        #     # [error_1] and [error_2] = [error_2]
-        #     # [] and [] = []
-        #     # Thus, we can use the and operator to implement "or" validations
-        #     combined = left_errors.combine(
-        #         right_errors,
-        #         func=lambda l, r: l + r if l and r else [],
-        #         fill_value=[]
-        #     )
-        #     # func=lambda a, b: [] if len(a) == 0 or len(b) == 0 else a + b)
-        # else:
-        #     raise Exception('Operator must be "and" or "or"')
-        #
-        left_failed = left_index(df)
-        right_failed = right_index(df)
-
+        # Convert the data into warnings, and then join together the warnings from both validations
         warnings = pd.concat([
             self.left.index_to_warnings_series(df, left_index, left_failed),
             self.right.index_to_warnings_series(df, right_index, right_failed)
         ])#, join='inner', keys=['inner', 'outer'])
 
+        # Finally, apply the combined index from above to the warnings series
         if self.axis == 'rows':
             return warnings[combined.row_index.index]
         else:

@@ -17,7 +17,7 @@ from pandas_schema.column import column, column_sequence
 from pandas_schema import ValidationWarning
 
 
-def get_warnings(validator: BaseValidation, series: list) -> typing.Collection[
+def get_warnings(validator: BaseValidation, series: typing.Union[list, pd.Series]) -> typing.Collection[
     ValidationWarning]:
     """
     Tests a validator by asserting that it generates the amount of warnings
@@ -398,25 +398,17 @@ class InRange(ValidationTestBase):
         ])) == 3, 'Incorrectly accepts integers outside of the range'
 
     def test_valid_character_items(self):
-        self.validate_and_compare(
-            [
-                7,
-                "8",
-                8
-            ],
-            True,
-            "Does not accept integers provided as a string"
-        )
+        assert len(get_warnings(self.validator, [
+            7,
+            "8",
+            8
+        ])) == 0, "Does not accept integers provided as a string"
 
     def test_invalid_character_items(self):
-        self.validate_and_compare(
-            [
-                "seven",
-                "eight",
-            ],
-            False,
-            "Incorrectly accepts items with non numerical text"
-        )
+        assert len(get_warnings(self.validator, [
+            "seven",
+            "eight",
+        ])) == 2, "Incorrectly accepts items with non numerical text"
 
 
 class Dtype(ValidationTestBase):
@@ -586,21 +578,29 @@ class PandasDtypeTests(ValidationTestBase):
                                           index=0)
 
     def test_valid_elements(self):
-        errors = self.validator.validate_series(
-            pd.Series(['a', 'b', 'c', 'A', 'B', 'C'], dtype='category'))
+        errors = get_warnings(
+            self.validator,
+            pd.Series(['a', 'b', 'c', 'A', 'B', 'C'], dtype='category')
+        )
         assert len(list(errors)) == 0
 
     def test_invalid_empty_elements(self):
-        errors = self.validator.validate_series(
-            pd.Series(['aa', 'bb', 'd', None], dtype='category'))
+        errors = get_warnings(
+            self.validator,
+            pd.Series(['aa', 'bb', 'd', None], dtype='category')
+        )
         assert len(list(errors)) == 4
 
     def test_invalid_and_empty_elements(self):
-        errors = self.validator.validate_series(
-            pd.Series(['a', None], dtype='category'))
+        errors = get_warnings(
+            self.validator,
+            pd.Series(['a', None], dtype='category')
+        )
         assert len(list(errors)) == 1
 
     def test_invalid_elements(self):
-        errors = self.validator.validate_series(
-            pd.Series(['aa', 'bb', 'd'], dtype='category'))
+        errors = get_warnings(
+            self.validator,
+            pd.Series(['aa', 'bb', 'd'], dtype='category')
+        )
         assert len(list(errors)) == 3

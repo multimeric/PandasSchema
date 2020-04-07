@@ -78,7 +78,7 @@ class InRangeValidation(SeriesValidation):
         return 'was not in the range [{}, {})'.format(self.min, self.max)
 
     def validate_series(self, series: pd.Series) -> pd.Series:
-        series = pd.to_numeric(series)
+        series = pd.to_numeric(series, errors="coerce")
         return (series >= self.min) & (series < self.max)
 
 
