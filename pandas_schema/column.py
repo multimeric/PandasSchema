@@ -5,7 +5,7 @@ from pandas_schema.index import AxisIndexer
 
 
 def column(
-        validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
+        validations: typing.Iterable['pandas_schema.core.IndexValidation'],
         index: AxisIndexer = None,
         override: bool = False,
         allow_empty=False
@@ -24,13 +24,13 @@ def column(
 
 
 def column_sequence(
-        validations: typing.Iterable['pandas_schema.core.IndexSeriesValidation'],
+        validations: typing.Iterable['pandas_schema.core.IndexValidation'],
         override: bool = False
 ):
     """
     A utility method for setting the index data on a set of Validations. Applies a sequential position based index, so
     that the first validation gets index 0, the second gets index 1 etc. Note: this will not modify any index that
-    already has some kind of index
+    already has some kind of index unless you set override=True
     :param validations: A list of validations to modify
     :param override: If true, override existing index values. Otherwise keep the existing ones
     """

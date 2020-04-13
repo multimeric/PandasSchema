@@ -476,11 +476,13 @@ class Negate(ValidationTestBase):
         ])) == 0, 'Rejects values that should pass'
 
     def test_invalid_items(self):
-        assert len(get_warnings(self.validator, [
+        warnings = get_warnings(self.validator, [
             'fail',
             'thisfails',
             'failure'
-        ])) == 3, 'Accepts values that should pass'
+        ])
+
+        assert len(warnings) == 3, 'Accepts values that should pass'
 
 
 class Or(ValidationTestBase):
