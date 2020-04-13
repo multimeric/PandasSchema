@@ -202,6 +202,14 @@ class BaseValidation(abc.ABC):
 
         return CombinedValidation(self, other, operator=operator.or_)
 
+    def __and__(self, other: 'BaseValidation'):
+        if not isinstance(other, BaseValidation):
+            raise PanSchArgumentError('The "|" operator can only be used between two'
+                                      'Validations that subclass {}'.format(
+                self.__class__))
+
+        return CombinedValidation(self, other, operator=operator.and_)
+
     def __invert__(self):
         """
         Return a copy of this, except that it will return indices of those that would normally pass this validation,
@@ -425,7 +433,7 @@ class CombinedValidation(BaseValidation):
             self,
             validation_a: BaseValidation,
             validation_b: BaseValidation,
-            operator: typing.Callable,
+            operator: typing.Callable[[pd.Series, pd.Series], pd.Series],
             axis='rows'
     ):
         super().__init__()
