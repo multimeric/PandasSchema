@@ -258,7 +258,7 @@ class InListValidation(SeriesValidation):
 
     def default_message(self, warning: ValidationWarning):
         values = ', '.join(str(v) for v in self.options)
-        return 'is not in the list of legal options ({})'.format(values)
+        return 'must be in the list of legal options ({})'.format(values)
 
     def validate_series(self, series: pd.Series) -> pd.Series:
         if self.case_sensitive:

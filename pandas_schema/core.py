@@ -14,7 +14,7 @@ from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning
 from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, \
-    DualAxisIndexer
+    DualAxisIndexer, BooleanIndexer
 from pandas_schema.scope import ValidationScope
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
 
@@ -79,7 +79,7 @@ class BaseValidation(abc.ABC):
 
         # If it's am empty series/frame then this produced no warnings
         if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
-            return []
+            return pd.Series()
 
         # Depending on the scope, we produce the lists of warnings in different ways (ideally the most efficient ways)
         if isinstance(failed, pd.DataFrame):
@@ -99,14 +99,19 @@ class BaseValidation(abc.ABC):
                         series=series,
                         row=cell.name,
                         value=cell
-                    )))
+                    ))).squeeze()
         elif isinstance(failed, pd.Series):
             if self.scope == ValidationScope.SERIES:
-                return [self.make_series_warning(
+                return df.apply(lambda series: self.make_series_warning(
                     df=df,
-                    column=index.col_index.index,
-                    series=failed
-                )]
+                    column=series.name,
+                    series=series
+                ), axis=0)
+                # return [self.make_series_warning(
+                #     df=df,
+                #     column=index.col_index.index,
+                #     series=failed
+                # )]
             elif self.scope == ValidationScope.CELL:
                 return failed.to_frame().apply(lambda cell: self.make_cell_warning(
                     df=df,
@@ -114,7 +119,7 @@ class BaseValidation(abc.ABC):
                     series=failed,
                     row=cell.name,
                     value=cell[0]
-                ), axis=1)
+                ), axis=1).squeeze()
         else:
             return [self.make_cell_warning(
                 df=df,
@@ -233,8 +238,6 @@ class BaseValidation(abc.ABC):
         return CombinedValidation(self, other, operator=operator.and_)
 
 
-
-
 class IndexValidation(BaseValidation):
     """
     An IndexValidation expands upon a BaseValidation by adding an index (in Pandas co-ordinates) that points to the
@@ -312,7 +315,7 @@ class SeriesValidation(IndexValidation):
             *args,
             index=DualAxisIndexer(
                 col_index=index,
-                row_index=RowIndexer(index=slice(None), typ=IndexType.POSITION),
+                row_index=BooleanIndexer(index=True, axis=0),
             ),
             **kwargs
         )
@@ -328,14 +331,14 @@ class SeriesValidation(IndexValidation):
         # As a convenience, we allow validate_series to return a boolean. If True it indicates everything passed, so
         # convert it to a None slice which returns everything, and if false convert it to an empty list, an indexer
         # that returns nothing
-        if isinstance(row_index, bool):
-            if row_index:
-                row_index = slice(None)
-            else:
-                row_index = []
+        # if isinstance(row_index, bool):
+        #     if row_index:
+        #         row_index = slice(None)
+        #     else:
+        #         row_index = []
 
         return DualAxisIndexer(
-            row_index=row_index,
+            row_index=BooleanIndexer(row_index, axis=0),
             col_index=self.index.col_index
         )
 
@@ -379,6 +382,15 @@ class CombinedValidation(BaseValidation):
         self.right = validation_b
         self.axis = axis
 
+    def message(self, warning: ValidationWarning) -> str:
+        # Nothing should ever try to create a ValidationWarning directly from a CombinedValidation,
+        # it should always use the original warnings from the child Validations
+        raise NotImplementedError()
+
+    # def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
+    #     # We handle this method by deferring to the children
+        
+
     def combine_indices(self, left: DualAxisIndexer, right: DualAxisIndexer) -> DualAxisIndexer:
         """
         Utility method for combining two indexers using boolean logic
@@ -386,24 +398,24 @@ class CombinedValidation(BaseValidation):
         # TODO: convert axis into an integer and apply proper pandas logic
         if self.axis == 'rows':
             assert left.col_index == right.col_index
-            assert isinstance(left.row_index.index, pd.Series)
+            assert isinstance(left.row_index, BooleanIndexer)
             return DualAxisIndexer(
-                row_index=self.operator(
+                row_index=BooleanIndexer(self.operator(
                     left.row_index.index,
                     right.row_index.index
-                ),
+                ), axis=0),
                 col_index=left.col_index
             )
 
         elif self.axis == 'columns':
             assert left.row_index == right.row_index
-            assert isinstance(left.col_index.index, pd.Series)
+            assert isinstance(left.col_index, BooleanIndexer)
             return DualAxisIndexer(
                 row_index=left.row_index,
-                col_index=self.operator(
+                col_index=BooleanIndexer(self.operator(
                     left.col_index.index,
                     right.col_index.index
-                )
+                ), axis=1)
             )
 
         else:

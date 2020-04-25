@@ -1,14 +1,15 @@
 from pandas_schema.errors import PanSchIndexError
 from dataclasses import dataclass
-from typing import Union, Optional
-import numpy
-import pandas
+from typing import Union, Optional, Any
+import numpy as np
+import pandas as pd
 from enum import Enum
+from abc import ABC, abstractmethod, ABCMeta
 
-# IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
-IndexValue = Union[numpy.ndarray, pandas.Series, str, int, slice]
+# IndexError: only integers, slices (`:`), ellipsis (`...`), np.newaxis (`None`) and integer or boolean arrays are valid indices
+IndexValue = Union[np.ndarray, pd.Series, str, int, slice]
 """
-A pandas index can either be an integer or string, or an array of either. This typing is a bit sketchy because really
+A pd index can either be an integer or string, or an array of either. This typing is a bit sketchy because really
 a lot of things are accepted here
 """
 
@@ -17,20 +18,17 @@ class IndexType(Enum):
     POSITION = 0
     LABEL = 1
 
-@dataclass(init=False)
-class AxisIndexer:
+@dataclass
+class AxisIndexer(ABC):
     """
-    An index into a particular axis of a DataFrame. Attempts to recreate the behaviour of `df.ix[some_index]`
+    Abstract base class for indexers
+        Each index represents a particular slice on a particular axis of a DataFrame. In this way, each AxisIndexer
+        attempts to recreate the behaviour of `df.ix[some_index]`
     """
 
-    index: IndexValue
+    index: Any
     """
     The index to use, either an integer for position-based indexing, or a string for label-based indexing
-    """
-
-    type: IndexType
-    """
-    The type of indexing to use, either 'position' or 'label'
     """
 
     axis: int
@@ -38,9 +36,59 @@ class AxisIndexer:
     The axis for the indexer
     """
 
-    negate: bool = False
+    @abstractmethod
+    def __call__(self, df: pd.DataFrame):
+        """
+        Apply this index
+        :param df: The DataFrame to index
+        :param axis: The axis to index along. axis=0 will select a row, and axis=1 will select a column
+        """
+
+    @abstractmethod
+    def for_loc(self, df: pd.DataFrame):
+        """
+        Returns this index as something that could be passed into df.loc[]
+        """
+
+    @abstractmethod
+    def for_iloc(self, df):
+        """
+        Returns this index as something that could be passed into df.iloc[]
+        """
+
+    @abstractmethod
+    def for_message(self) -> Optional[str]:
+        """
+        Returns a string that could be used to describe this indexer in a human readable way. However, returns None
+        if this indexer should not be described
+        """
+
+    @abstractmethod
+    def __invert__(self) -> 'AxisIndexer':
+        """
+        Returns an index that is inverted (will return the opposite of what was previously specified)
+        """
+
+
+@dataclass(init=False)
+class DirectIndexer(AxisIndexer):
+    """
+    A simple indexer that passes its index value directly into loc or iloc. For this reason it support any kind of
+    indexing, using boolean series, label series, position series, slices etc
+    """
+
+    type: IndexType
+    """
+    The type of indexing to use, either 'position' or 'label'
+    """
+
+    negate: bool
     """
     If yes, return all values that this index does *not* select
+    """
+    # index: IndexValue
+    """
+    The index to use, either an integer for position-based indexing, or a string for label-based indexing
     """
 
     def __init__(self, index: IndexValue, typ: IndexType = None, axis: int = 1, negate=False):
@@ -59,18 +107,18 @@ class AxisIndexer:
                 self.type = IndexType.POSITION
             elif isinstance(index, list):
                 self.type = IndexType.POSITION
-            elif isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
+            elif isinstance(index, pd.Series) and np.issubdtype(index.dtype, np.bool_):
                 # Boolean series can actually be used in loc or iloc, but let's assume it's only iloc for simplicity
                 self.type = IndexType.POSITION
-            elif numpy.issubdtype(type(index), numpy.character):
+            elif np.issubdtype(type(index), np.character):
                 self.type = IndexType.LABEL
-            elif numpy.issubdtype(type(index), numpy.int_):
+            elif np.issubdtype(type(index), np.int_):
                 self.type = IndexType.POSITION
             else:
                 raise PanSchIndexError('The index value was not either an integer or string, or an array of either of '
                                        'these')
 
-    def __call__(self, df: pandas.DataFrame):
+    def __call__(self, df: pd.DataFrame):
         """
         Apply this index
         :param df: The DataFrame to index
@@ -81,7 +129,7 @@ class AxisIndexer:
         elif self.type == IndexType.POSITION:
             return df.iloc(axis=self.axis)[self.index]
 
-    def for_loc(self, df: pandas.DataFrame):
+    def for_loc(self, df: pd.DataFrame):
         """
         Returns this index as something that could be passed into df.loc[]
         """
@@ -132,10 +180,10 @@ class AxisIndexer:
         elif isinstance(index, list) and len(index) == 0:
             # If this is an empty list, it would previously return nothing, so make it return everything
             return slice(None)
-        elif isinstance(index, pandas.Series) and numpy.issubdtype(index.dtype, numpy.bool_):
+        elif isinstance(index, pd.Series) and np.issubdtype(index.dtype, np.bool_):
             # Boolean series have a built-in inversion
             return ~index
-        # elif numpy.issubdtype(type(index), numpy.int_):
+        # elif np.issubdtype(type(index), np.int_):
         #     # Index series can't be inverted without knowing the original DF
         else:
             raise PanSchIndexError('Uninvertible type')
@@ -144,14 +192,78 @@ class AxisIndexer:
         """
         Returns an index that is inverted (will return the opposite of what was previously specified)
         """
-        return AxisIndexer(
-            index=self.invert_index(self.index),
+        return DirectIndexer(
+            # index=self.invert_index(self.index),
+            index=self.index,
             typ=self.type,
             axis=self.axis,
+            negate=not self.negate
         )
 
+BooleanIndexType = Union[pd.Series, bool]
 
-class SubIndexerMeta(type):
+
+class BooleanIndexer(AxisIndexer):
+    def __init__(self, index: BooleanIndexType, axis: int = 1):
+        self.index = index
+        self.axis = axis
+
+    def __invert__(self) -> 'AxisIndexer':
+        return BooleanIndexer(
+            index=np.logical_not(self.index),
+            axis=self.axis
+        )
+
+    @property
+    def direct_index(self):
+        """
+        Converts this indexer's self.index into a value that can be passed directly into iloc[]
+        """
+        if isinstance(self.index, bool):
+            if self.index:
+                return slice(None)
+            else:
+                return []
+
+        return self.index
+
+    def __call__(self, df: pd.DataFrame):
+        """
+        Apply this index
+        :param df: The DataFrame to index
+        :param axis: The axis to index along. axis=0 will select a row, and axis=1 will select a column
+        """
+        return df.iloc(axis=self.axis)[self.direct_index]
+
+    def for_loc(self, df: pd.DataFrame):
+        """
+        Returns this index as something that could be passed into df.loc[]
+        """
+        return self.direct_index
+
+    def for_iloc(self, df):
+        """
+        Returns this index as something that could be passed into df.iloc[]
+        """
+        return self.direct_index
+
+    def for_message(self) -> Optional[str]:
+        """
+        Returns a string that could be used to describe this indexer in a human readable way. However, returns None
+        if this indexer should not be described
+        """
+        if self.axis == 0:
+            prefix = "Row"
+        else:
+            prefix = "Column"
+
+        return "{} {}".format(prefix, str(self.index))
+
+
+class SubIndexerMeta(ABCMeta):
+    """
+    Metaclass for RowIndexer and ColumnIndexer, allowing then to do instance checks in a more flexible way
+    """
     def __init__(cls, *args, axis: int, **kwargs):
         super().__init__(*args)
         cls.axis = axis
@@ -173,13 +285,11 @@ class SubIndexerMeta(type):
 
 
 class RowIndexer(AxisIndexer, axis=0, metaclass=SubIndexerMeta):
-    def __init__(self, index: IndexValue, typ: IndexType = None):
-        super().__init__(index=index, typ=typ, axis=0)
+    pass
 
 
 class ColumnIndexer(AxisIndexer, axis=1, metaclass=SubIndexerMeta):
-    def __init__(self, index: IndexValue, typ: IndexType = None):
-        super().__init__(index=index, typ=typ, axis=1)
+    pass
 
 
 @dataclass(init=False)
@@ -195,15 +305,14 @@ class DualAxisIndexer:
         if isinstance(row_index, RowIndexer):
             self.row_index = row_index
         else:
-            self.row_index = RowIndexer(index=row_index)
+            self.row_index = DirectIndexer(index=row_index, axis=0)
 
         if isinstance(col_index, ColumnIndexer):
             self.col_index = col_index
         else:
-            self.col_index = ColumnIndexer(index=col_index)
+            self.col_index = DirectIndexer(index=col_index, axis=1)
 
-
-    def __call__(self, df: pandas.DataFrame):
+    def __call__(self, df: pd.DataFrame):
         return df.loc[self.row_index.for_loc(df), self.col_index.for_loc(df)]
 
     def invert(self, axis) -> 'AxisIndexer':
