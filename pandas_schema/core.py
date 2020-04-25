@@ -429,6 +429,58 @@ class CombinedValidation(BaseValidation):
     def get_failed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         return self.get_passed_index(df).invert(self.axis)
 
+    def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
+        # If it's am empty series/frame then this produced no warnings
+        if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
+            return pd.Series()
+
+        # Depending on the scope, we produce the lists of warnings in different ways (ideally the most efficient ways)
+        if isinstance(failed, pd.DataFrame):
+            if self.scope == ValidationScope.DATA_FRAME:
+                return [self.make_df_warning(df)]
+            elif self.scope == ValidationScope.SERIES:
+                return df.apply(lambda series: self.make_series_warning(
+                    df=df,
+                    column=series.name,
+                    series=series
+                ), axis=0)
+            elif self.scope == ValidationScope.CELL:
+                return df.apply(lambda series: series.to_frame().apply(
+                    lambda cell: self.make_cell_warning(
+                        df=df,
+                        column=series.name,
+                        series=series,
+                        row=cell.name,
+                        value=cell
+                    ))).squeeze()
+        elif isinstance(failed, pd.Series):
+            if self.scope == ValidationScope.SERIES:
+                return df.apply(lambda series: self.make_series_warning(
+                    df=df,
+                    column=series.name,
+                    series=series
+                ), axis=0)
+                # return [self.make_series_warning(
+                #     df=df,
+                #     column=index.col_index.index,
+                #     series=failed
+                # )]
+            elif self.scope == ValidationScope.CELL:
+                return failed.to_frame().apply(lambda cell: self.make_cell_warning(
+                    df=df,
+                    column=index.col_index.index,
+                    series=failed,
+                    row=cell.name,
+                    value=cell[0]
+                ), axis=1).squeeze()
+        else:
+            return [self.make_cell_warning(
+                df=df,
+                column=index.col_index.index,
+                row=index.row_index.index,
+                value=failed)
+            ]
+
     def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
         left_index = self.left.get_passed_index(df)

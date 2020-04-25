@@ -32,3 +32,20 @@ class ValidationWarning:
 
     def __str__(self):
         return self.message
+
+
+class CombinedValidationWarning(ValidationWarning):
+    """
+    Warning for a CombinedValidation, which itself wraps 2 other Warnings from child Validations
+    """
+    left: ValidationWarning
+    right: ValidationWarning
+
+    @property
+    def message(self):
+        """
+        Return this validation as a string
+        """
+        # Unlike a normal ValidationWarning, this doesn't ask CombinedValidation for a message, it just combines
+        # existing messages
+        return '{} and {}'.format(self.left.message, self.right.message)
