@@ -49,7 +49,7 @@ class Or(unittest.TestCase):
 
 class AndOr(unittest.TestCase):
     validator = InListValidation(['one', 'two', 'three'], index=0) | (
-            IsDtypeValidation(int, index=0) & InRangeValidation(1, 3, index=0)
+            IsDtypeValidation(np.int_, index=0) & InRangeValidation(1, 3, index=0)
     )
 
     def test_passing_words(self):
@@ -83,3 +83,5 @@ class AndOr(unittest.TestCase):
             6
         ], dtype=np.int_))
         assert len(warnings) == 3
+        for warning in warnings:
+            print(warning.message)

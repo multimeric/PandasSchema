@@ -23,12 +23,20 @@ class ValidationWarning:
         self.props = props
 
     @property
-    def message(self):
+    def message(self) -> str:
         """
         Return this validation as a string
         """
         # Internally, this actually asks the validator class to formulate a message
         return self.validation.message(self)
+
+    @property
+    def prefix(self) -> str:
+        return self.validation.prefix(self)
+
+    @property
+    def suffix(self) -> str:
+        return self.validation.suffix(self)
 
     def __str__(self):
         return self.message
@@ -41,6 +49,11 @@ class CombinedValidationWarning(ValidationWarning):
     left: ValidationWarning
     right: ValidationWarning
 
+    def __init__(self, left: ValidationWarning, right: ValidationWarning, **kwargs):
+        super().__init__(**kwargs)
+        self.left = left
+        self.right = right
+
     @property
     def message(self):
         """
@@ -48,4 +61,4 @@ class CombinedValidationWarning(ValidationWarning):
         """
         # Unlike a normal ValidationWarning, this doesn't ask CombinedValidation for a message, it just combines
         # existing messages
-        return '{} and {}'.format(self.left.message, self.right.message)
+        return '{} {} and {}'.format(self.left.prefix, self.left.suffix, self.right.suffix)

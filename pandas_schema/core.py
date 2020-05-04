@@ -9,10 +9,11 @@ import operator
 from dataclasses import dataclass
 import enum
 import copy
+from math import isnan
 
 from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
-from pandas_schema.validation_warning import ValidationWarning
+from pandas_schema.validation_warning import ValidationWarning, CombinedValidationWarning
 from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, \
     DualAxisIndexer, BooleanIndexer
 from pandas_schema.scope import ValidationScope
@@ -177,20 +178,24 @@ class BaseValidation(abc.ABC):
         """
         Get a string that fully describes the provided warning, given that the warning was generating by this validation
         """
-        # The message is made up of a prefix (which describes the index that failed), and a suffix (which describes
-        # the validation that it failed)
+        return "{} {}".format(self.prefix(warning), self.suffix(warning))
 
-        # The prefix can be overridden
-        prefix = self.prefix(warning)
+    def prefix(self, warning: ValidationWarning):
+        """
+        Return a string that can be used to prefix a message that relates to this index
 
+        This method is safe to override
+        """
+        return ""
+
+
+    def suffix(self, warning: ValidationWarning):
         # The suffix can be overridden in two ways, either using a custom message (the most common), or with a custom
         # default_message() function
         if self.custom_message:
-            suffix = self.custom_message
+            return self.custom_message
         else:
-            suffix = self.default_message(warning)
-
-        return "{} {}".format(prefix, suffix)
+            return self.default_message(warning)
 
     @property
     def readable_name(self):
@@ -204,14 +209,6 @@ class BaseValidation(abc.ABC):
         Returns a description of this validation, to be included in the py:meth:~message as the suffix``
         """
         return 'failed the {}'.format(self.readable_name)
-
-    def prefix(self, warning: ValidationWarning):
-        """
-        Return a string that can be used to prefix a message that relates to this index
-
-        This method is safe to override
-        """
-        return ""
 
     def __or__(self, other: 'BaseValidation'):
         """
@@ -273,9 +270,9 @@ class IndexValidation(BaseValidation):
 
         ret.append('Row {}'.format(warning.props['row']))
 
-        ret.append('"{}"'.format(warning.props['value']))
+        ret.append('Value "{}"'.format(warning.props['value']))
 
-        return ' '.join(ret)
+        return '{' + ', '.join(ret) + '}'
 
     def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         selection = self.apply_index(df)
@@ -430,56 +427,9 @@ class CombinedValidation(BaseValidation):
         return self.get_passed_index(df).invert(self.axis)
 
     def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
-        # If it's am empty series/frame then this produced no warnings
-        if isinstance(failed, (pd.DataFrame, pd.Series)) and failed.empty:
-            return pd.Series()
-
-        # Depending on the scope, we produce the lists of warnings in different ways (ideally the most efficient ways)
-        if isinstance(failed, pd.DataFrame):
-            if self.scope == ValidationScope.DATA_FRAME:
-                return [self.make_df_warning(df)]
-            elif self.scope == ValidationScope.SERIES:
-                return df.apply(lambda series: self.make_series_warning(
-                    df=df,
-                    column=series.name,
-                    series=series
-                ), axis=0)
-            elif self.scope == ValidationScope.CELL:
-                return df.apply(lambda series: series.to_frame().apply(
-                    lambda cell: self.make_cell_warning(
-                        df=df,
-                        column=series.name,
-                        series=series,
-                        row=cell.name,
-                        value=cell
-                    ))).squeeze()
-        elif isinstance(failed, pd.Series):
-            if self.scope == ValidationScope.SERIES:
-                return df.apply(lambda series: self.make_series_warning(
-                    df=df,
-                    column=series.name,
-                    series=series
-                ), axis=0)
-                # return [self.make_series_warning(
-                #     df=df,
-                #     column=index.col_index.index,
-                #     series=failed
-                # )]
-            elif self.scope == ValidationScope.CELL:
-                return failed.to_frame().apply(lambda cell: self.make_cell_warning(
-                    df=df,
-                    column=index.col_index.index,
-                    series=failed,
-                    row=cell.name,
-                    value=cell[0]
-                ), axis=1).squeeze()
-        else:
-            return [self.make_cell_warning(
-                df=df,
-                column=index.col_index.index,
-                row=index.row_index.index,
-                value=failed)
-            ]
+        # In a normal validation this method would create new Validatations, and use the index, but we don't actually
+        # need either here
+        return self.get_warnings_series(df)
 
     def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
@@ -496,10 +446,22 @@ class CombinedValidation(BaseValidation):
         right_failed = right_index.invert(axis=0)(df)
 
         # Convert the data into warnings, and then join together the warnings from both validations
-        warnings = pd.concat([
-            self.left.index_to_warnings_series(df, left_index, left_failed),
-            self.right.index_to_warnings_series(df, right_index, right_failed)
-        ])#, join='inner', keys=['inner', 'outer'])
+        def combine(left, right):
+            # Make a CombinedValidationWarning if it failed both validations, otherwise return the single failure
+            if left:
+                if right:
+                    return CombinedValidationWarning(left, right, validation=self)
+                else:
+                    return left
+            else:
+                return right
+
+
+        warnings = self.left.index_to_warnings_series(df, left_index, left_failed).combine(
+            self.right.index_to_warnings_series(df, right_index, right_failed),
+            func=combine,
+            fill_value=False
+        )
 
         # Finally, apply the combined index from above to the warnings series
         if self.axis == 'rows':

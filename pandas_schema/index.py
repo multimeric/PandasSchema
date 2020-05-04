@@ -219,12 +219,14 @@ class BooleanIndexer(AxisIndexer):
         """
         Converts this indexer's self.index into a value that can be passed directly into iloc[]
         """
-        if isinstance(self.index, bool):
+        # If it's a scalar boolean, we need special values
+        if np.issubdtype(type(self.index), np.bool_) and np.ndim(self.index) == 0:
             if self.index:
                 return slice(None)
             else:
                 return []
 
+        # If it's a vector, pandas can deal with it
         return self.index
 
     def __call__(self, df: pd.DataFrame):
