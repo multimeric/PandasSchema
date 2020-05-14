@@ -435,6 +435,49 @@ class Dtype(ValidationTestBase):
         for error, correct_dtype in zip(errors, [np.object, np.int64, np.float64]):
             assert error.props['dtype'] == correct_dtype
 
+
+class IsEmpty(ValidationTestBase):
+    def setUp(self):
+        self.validator = IsEmptyValidation(index=0)
+
+    def test_valid_items_float(self):
+        errors = get_warnings(self.validator, pd.Series([
+            np.nan,
+            np.nan
+        ], dtype=np.float_))
+
+        self.assertEqual(len(errors), 0)
+
+    def test_valid_items_str(self):
+        errors = get_warnings(self.validator, pd.Series([
+            '',
+            '',
+            ''
+        ], dtype=np.str_))
+
+        self.assertEqual(len(errors), 0)
+
+    def test_invalid_items_int(self):
+        errors = get_warnings(self.validator, pd.Series([
+            0,
+            1,
+            -1
+        ], dtype=np.int_))
+
+        self.assertEqual(len(errors), 3)
+        self.assertEqual(type(errors[0]), ValidationWarning)
+
+
+    def test_invalid_items_str(self):
+        errors = get_warnings(self.validator, pd.Series([
+            'a',
+            '  '
+        ], dtype=np.str_))
+
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(type(errors[0]), ValidationWarning)
+
+
 class Negate(ValidationTestBase):
     """
     Tests the ~ operator on a MatchesPatternValidation

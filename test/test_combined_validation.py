@@ -1,6 +1,7 @@
 import json
 import unittest
 import re
+import math
 
 from numpy import nan, dtype
 import numpy as np
@@ -48,6 +49,9 @@ class Or(unittest.TestCase):
 
 
 class AndOr(unittest.TestCase):
+    """
+    Tests a more complex case where we have an "or" and then an "and"
+    """
     validator = InListValidation(['one', 'two', 'three'], index=0) | (
             IsDtypeValidation(np.int_, index=0) & InRangeValidation(1, 3, index=0)
     )
@@ -85,3 +89,31 @@ class AndOr(unittest.TestCase):
         assert len(warnings) == 3
         for warning in warnings:
             print(warning.message)
+
+class Optional(unittest.TestCase):
+    """
+    Tests the "optional" method, which Ors the validation with an IsEmptyValidation
+    """
+    validator = InRangeValidation(5, 10, index=0).optional()
+
+    def test_passing(self):
+        warnings = get_warnings(self.validator, [
+            5,
+            None,
+            6,
+            None,
+            7,
+            None
+        ])
+
+        assert warnings == [], 'is not accepting null values'
+
+    def test_failing(self):
+        assert len(get_warnings(self.validator, [
+            0,
+            math.inf,
+            -1,
+            10
+        ])) == 4, 'is accepting invalid values'
+
+

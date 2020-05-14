@@ -11,7 +11,6 @@ import enum
 import copy
 from math import isnan
 
-from . import column
 from .errors import PanSchArgumentError, PanSchNoIndexError
 from pandas_schema.validation_warning import ValidationWarning, CombinedValidationWarning
 from pandas_schema.index import AxisIndexer, IndexValue, IndexType, RowIndexer, \
@@ -61,14 +60,6 @@ class BaseValidation(abc.ABC):
         """
         return ValidationWarning(self, column=column, row=row, value=value)
 
-    def apply_negation(self, index: DualAxisIndexer) -> DualAxisIndexer:
-        """
-        Can be implemented by sub-classes to provide negation behaviour. If implemented, this should return a new
-        indexer that returns the opposite of what it normally would. The definition of opposite may vary from validation
-        to validation
-        """
-        raise NotImplementedError()
-
     def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
         """
         Takes an index that points to parts of the DF that have *failed* validation, and returns a Series (or similar)
@@ -108,11 +99,6 @@ class BaseValidation(abc.ABC):
                     column=series.name,
                     series=series
                 ), axis=0)
-                # return [self.make_series_warning(
-                #     df=df,
-                #     column=index.col_index.index,
-                #     series=failed
-                # )]
             elif self.scope == ValidationScope.CELL:
                 return failed.to_frame().apply(lambda cell: self.make_cell_warning(
                     df=df,
@@ -188,7 +174,6 @@ class BaseValidation(abc.ABC):
         """
         return ""
 
-
     def suffix(self, warning: ValidationWarning):
         # The suffix can be overridden in two ways, either using a custom message (the most common), or with a custom
         # default_message() function
@@ -240,6 +225,7 @@ class IndexValidation(BaseValidation):
     An IndexValidation expands upon a BaseValidation by adding an index (in Pandas co-ordinates) that points to the
     Series/DF sub-selection/row/cell that it validates
     """
+
     def __init__(
             self,
             index: DualAxisIndexer,
@@ -296,24 +282,41 @@ class IndexValidation(BaseValidation):
         clone.index = self.index.invert(axis)
         return clone
 
+    def optional(self) -> 'CombinedValidation':
+        """
+        Makes this Validation optional, by returning a CombinedValidation that accepts empty cells
+        """
+        return CombinedValidation(
+            self,
+            IsEmptyValidation(index=self.index),
+            operator=operator.or_
+        )
+
+
 class SeriesValidation(IndexValidation):
     """
     A type of IndexValidation that expands IndexValidation with the knowledge that it will validate a single Series
     """
 
-    def __init__(self, index:typing.Union[RowIndexer, IndexValue], *args, **kwargs):
+    def __init__(self, index: typing.Union[RowIndexer, IndexValue, DualAxisIndexer], *args, **kwargs):
         """
         Create a new SeriesValidation
         :param index: The index pointing to the Series to validate. For example, this might be 2 to validate Series
             with index 2, or "first_name" to validate a Series named "first_name". For more advanced indexing, you may
             pass in an instance of the RowIndexer class
         """
-        super().__init__(
-            *args,
-            index=DualAxisIndexer(
+        # We have to convert a single-axis index into a dual-axis index
+        if isinstance(index, DualAxisIndexer):
+            dual = index
+        else:
+            dual = DualAxisIndexer(
                 col_index=index,
                 row_index=BooleanIndexer(index=True, axis=0),
-            ),
+            )
+
+        super().__init__(
+            *args,
+            index=dual,
             **kwargs
         )
 
@@ -345,6 +348,7 @@ class SeriesValidation(IndexValidation):
         Given a series, return a bool Series that has values of True if the series
             passes the validation, otherwise False
         """
+
     def __invert__(self) -> 'SeriesValidation':
         """
         Return a Validation that returns the opposite cells it used to, but in the same column
@@ -386,7 +390,6 @@ class CombinedValidation(BaseValidation):
 
     # def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
     #     # We handle this method by deferring to the children
-        
 
     def combine_indices(self, left: DualAxisIndexer, right: DualAxisIndexer) -> DualAxisIndexer:
         """
@@ -456,7 +459,6 @@ class CombinedValidation(BaseValidation):
             else:
                 return right
 
-
         warnings = self.left.index_to_warnings_series(df, left_index, left_failed).combine(
             self.right.index_to_warnings_series(df, right_index, right_failed),
             func=combine,
@@ -468,3 +470,15 @@ class CombinedValidation(BaseValidation):
             return warnings[combined.row_index.index]
         else:
             return warnings[combined.col_index.index]
+
+
+class IsEmptyValidation(SeriesValidation):
+    """
+    Validates that each element in the Series is "empty". For most dtypes, this means each element contains null,
+    but for strings we consider 0-length strings to be empty
+    """
+    def validate_series(self, series: pd.Series) -> IndexValue:
+        if is_categorical_dtype(series) or is_numeric_dtype(series):
+            return series.isnull()
+        else:
+            return series.str.len() == 0
