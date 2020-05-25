@@ -45,7 +45,7 @@ class Or(unittest.TestCase):
             'YPESS'
         ])
 
-        assert len(warnings) == 6, 'accepts values that should pass'
+        assert len(warnings) == 3, 'accepts values that should pass'
 
 
 class AndOr(unittest.TestCase):
@@ -53,7 +53,7 @@ class AndOr(unittest.TestCase):
     Tests a more complex case where we have an "or" and then an "and"
     """
     validator = InListValidation(['one', 'two', 'three'], index=0) | (
-            IsDtypeValidation(np.int_, index=0) & InRangeValidation(1, 3, index=0)
+            IsDtypeValidation(np.int_, index=0) & InRangeValidation(1, 4, index=0)
     )
 
     def test_passing_words(self):

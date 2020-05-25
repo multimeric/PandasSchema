@@ -18,6 +18,7 @@ class IndexType(Enum):
     POSITION = 0
     LABEL = 1
 
+
 @dataclass
 class AxisIndexer(ABC):
     """
@@ -200,6 +201,7 @@ class DirectIndexer(AxisIndexer):
             negate=not self.negate
         )
 
+
 BooleanIndexType = Union[pd.Series, bool]
 
 
@@ -266,6 +268,7 @@ class SubIndexerMeta(ABCMeta):
     """
     Metaclass for RowIndexer and ColumnIndexer, allowing then to do instance checks in a more flexible way
     """
+
     def __init__(cls, *args, axis: int, **kwargs):
         super().__init__(*args)
         cls.axis = axis
@@ -292,6 +295,16 @@ class RowIndexer(AxisIndexer, axis=0, metaclass=SubIndexerMeta):
 
 class ColumnIndexer(AxisIndexer, axis=1, metaclass=SubIndexerMeta):
     pass
+
+
+class DirectRowIndexer(DirectIndexer):
+    def __init__(self, index: IndexValue, typ: IndexType = None):
+        super().__init__(index=index, typ=typ, axis=0)
+
+
+class DirectColumnIndexer(DirectIndexer):
+    def __init__(self, index: IndexValue, typ: IndexType = None):
+        super().__init__(index=index, typ=typ, axis=1)
 
 
 @dataclass(init=False)

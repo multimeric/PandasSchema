@@ -11,7 +11,7 @@ import pandas as pd
 
 from pandas_schema.validations import *
 from pandas_schema.core import CombinedValidation, BaseValidation
-from pandas_schema.index import ColumnIndexer as ci
+from pandas_schema.index import DirectColumnIndexer as ci
 from pandas_schema.schema import Schema
 from pandas_schema.column import column, column_sequence
 from pandas_schema import ValidationWarning
@@ -431,6 +431,8 @@ class Dtype(ValidationTestBase):
         ])
 
         errors = schema.validate(df)
+
+        assert len(errors) == 3
 
         for error, correct_dtype in zip(errors, [np.object, np.int64, np.float64]):
             assert error.props['dtype'] == correct_dtype

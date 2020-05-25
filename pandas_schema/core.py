@@ -40,6 +40,7 @@ class BaseValidation(abc.ABC):
         """
         self.custom_message = message
 
+
     def make_df_warning(self, df: pd.DataFrame) -> ValidationWarning:
         """
         Creates a DF-scope warning. Can be overridden by child classes
@@ -78,35 +79,36 @@ class BaseValidation(abc.ABC):
             if self.scope == ValidationScope.DATA_FRAME:
                 return [self.make_df_warning(df)]
             elif self.scope == ValidationScope.SERIES:
-                return df.apply(lambda series: self.make_series_warning(
+                return failed.apply(lambda series: self.make_series_warning(
                     df=df,
                     column=series.name,
                     series=series
-                ), axis=0)
+                ), axis='columns')
             elif self.scope == ValidationScope.CELL:
-                return df.apply(lambda series: series.to_frame().apply(
+                return failed.apply(lambda series: series.to_frame().apply(
                     lambda cell: self.make_cell_warning(
                         df=df,
                         column=series.name,
                         series=series,
                         row=cell.name,
                         value=cell
-                    ))).squeeze()
+                    )))
         elif isinstance(failed, pd.Series):
             if self.scope == ValidationScope.SERIES:
-                return df.apply(lambda series: self.make_series_warning(
+                return [self.make_series_warning(
                     df=df,
-                    column=series.name,
-                    series=series
-                ), axis=0)
+                    column=failed.name,
+                    series=failed
+                )]
             elif self.scope == ValidationScope.CELL:
+                # DataFrame.apply returns a series if the function returns a scalar, as it does here
                 return failed.to_frame().apply(lambda cell: self.make_cell_warning(
                     df=df,
                     column=index.col_index.index,
                     series=failed,
                     row=cell.name,
                     value=cell[0]
-                ), axis=1).squeeze()
+                ), axis='columns')
         else:
             return [self.make_cell_warning(
                 df=df,
@@ -240,7 +242,7 @@ class IndexValidation(BaseValidation):
         super().__init__(*args, **kwargs)
         self.index = index
 
-    def apply_index(self, df: pd.DataFrame):
+    def apply_index(self, df: pd.DataFrame) -> SubSelection:
         """
         Select a series using the data stored in this validation
         """
@@ -264,23 +266,12 @@ class IndexValidation(BaseValidation):
         selection = self.apply_index(df)
         return self.validate_selection(selection)
 
-    def get_failed_index(self, df) -> DualAxisIndexer:
-        return self.get_passed_index(df).invert(axis=0)
-
     @abc.abstractmethod
     def validate_selection(self, selection: SubSelection) -> DualAxisIndexer:
         """
         Given a selection, return an indexer that points to elements that passed the validation
         """
         pass
-
-    def invert(self, axis: int):
-        """
-        Returns a copy of this validation, but with an inverted indexer
-        """
-        clone = copy.copy(self)
-        clone.index = self.index.invert(axis)
-        return clone
 
     def optional(self) -> 'CombinedValidation':
         """
@@ -298,7 +289,7 @@ class SeriesValidation(IndexValidation):
     A type of IndexValidation that expands IndexValidation with the knowledge that it will validate a single Series
     """
 
-    def __init__(self, index: typing.Union[RowIndexer, IndexValue, DualAxisIndexer], *args, **kwargs):
+    def __init__(self, index: typing.Union[RowIndexer, IndexValue, DualAxisIndexer], negated: bool=False, *args, **kwargs):
         """
         Create a new SeriesValidation
         :param index: The index pointing to the Series to validate. For example, this might be 2 to validate Series
@@ -319,6 +310,28 @@ class SeriesValidation(IndexValidation):
             index=dual,
             **kwargs
         )
+
+        self.negated = negated
+        """
+        This broadly means that this validation will do the opposite of what it normally does. The actual implementation
+        depends on the subclass checking for this field whenever it needs to. Even for IndexValidations, we can't invert
+        the actual index, because it doesn't exist yet. It's only created after we run the actual validation
+        """
+
+    def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
+        index = super().get_passed_index(df)
+        if self.negated:
+            return index.invert(axis=0)
+        else:
+            return index
+
+    def get_failed_index(self, df) -> DualAxisIndexer:
+        # This is the opposite of get_passed_index, so we just flip the conditional
+        index = super().get_passed_index(df)
+        if self.negated:
+            return index
+        else:
+            return index.invert(axis=0)
 
     def validate_selection(self, selection: SubSelection) -> DualAxisIndexer:
         """
@@ -349,12 +362,13 @@ class SeriesValidation(IndexValidation):
             passes the validation, otherwise False
         """
 
-    def __invert__(self) -> 'SeriesValidation':
+    def __invert__(self) -> 'BaseValidation':
         """
-        Return a Validation that returns the opposite cells it used to, but in the same column
+        Returns: A copy of this validation, but that validates the opposite of what it normally would
         """
-        # We can only do this now that we are a SeriesValidation and we know on which axis to invert
-        return self.invert(axis=0)
+        clone = copy.copy(self)
+        clone.negated = True
+        return clone
 
 
 class CombinedValidation(BaseValidation):
@@ -434,6 +448,30 @@ class CombinedValidation(BaseValidation):
         # need either here
         return self.get_warnings_series(df)
 
+    def combine(self, left: SubSelection, right: SubSelection):
+        """
+        Combine two subsections of the DataFrame, each containing :py:class:`pandas_schema.validation_warning.ValidationWarning`
+        instances
+        """
+
+        # Convert the data into warnings, and then join together the warnings from both validations
+        def combine_index(left, right):
+            # Make a CombinedValidationWarning if it failed both validations, otherwise return the single failure
+            if left:
+                if right:
+                    return CombinedValidationWarning(left, right, validation=self)
+                else:
+                    return left
+            else:
+                return right
+
+        if isinstance(left, (pd.Series, pd.DataFrame)):
+            return left.combine(right, combine_index, fill_value=False)
+        elif isinstance(right, (pd.Series, pd.DataFrame)):
+            return right.combine(left, combine_index, fill_value=False)
+        else:
+            return combine_index(left, right)
+
     def get_warnings_series(self, df: pd.DataFrame) -> pd.Series:
         # Let both validations separately select and filter a column
         left_index = self.left.get_passed_index(df)
@@ -448,22 +486,15 @@ class CombinedValidation(BaseValidation):
         left_failed = left_index.invert(axis=0)(df)
         right_failed = right_index.invert(axis=0)(df)
 
-        # Convert the data into warnings, and then join together the warnings from both validations
-        def combine(left, right):
-            # Make a CombinedValidationWarning if it failed both validations, otherwise return the single failure
-            if left:
-                if right:
-                    return CombinedValidationWarning(left, right, validation=self)
-                else:
-                    return left
-            else:
-                return right
-
-        warnings = self.left.index_to_warnings_series(df, left_index, left_failed).combine(
-            self.right.index_to_warnings_series(df, right_index, right_failed),
-            func=combine,
-            fill_value=False
+        warnings = self.combine(
+            self.left.index_to_warnings_series(df, left_index, left_failed),
+            self.right.index_to_warnings_series(df, right_index, right_failed)
         )
+        # warnings = self.left.index_to_warnings_series(df, left_index, left_failed).combine(
+        #     self.right.index_to_warnings_series(df, right_index, right_failed),
+        #     func=combine,
+        #     fill_value=False
+        # )
 
         # Finally, apply the combined index from above to the warnings series
         if self.axis == 'rows':
@@ -477,6 +508,7 @@ class IsEmptyValidation(SeriesValidation):
     Validates that each element in the Series is "empty". For most dtypes, this means each element contains null,
     but for strings we consider 0-length strings to be empty
     """
+
     def validate_series(self, series: pd.Series) -> IndexValue:
         if is_categorical_dtype(series) or is_numeric_dtype(series):
             return series.isnull()
