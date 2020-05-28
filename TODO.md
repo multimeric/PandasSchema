@@ -1,4 +1,5 @@
-* [ ] Add validations that apply to every column in the DF equally
+* [ ] Add validations that apply to every column in the DF equally (for the moment, users can just duplicate their validations)
+* [x] Add validations that use the entire DF like, uniqueness
 * [x] Fix CombinedValidations
 * [x] Add replacement for allow_empty Columns 
 * [ ] New column() tests

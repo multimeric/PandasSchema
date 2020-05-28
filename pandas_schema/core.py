@@ -47,6 +47,12 @@ class BaseValidation(abc.ABC):
         """
         return ValidationWarning(self)
 
+    def make_row_warning(self, df: pd.DataFrame, row_index: IndexValue) -> ValidationWarning:
+        """
+        Creates a series-scope warning. Can be overridden by child classes
+        """
+        return ValidationWarning(self, row=row_index)
+
     def make_series_warning(self, df: pd.DataFrame, column: str,
                             series: pd.Series) -> ValidationWarning:
         """
@@ -83,6 +89,11 @@ class BaseValidation(abc.ABC):
                     df=df,
                     column=series.name,
                     series=series
+                ), axis='rows')
+            elif self.scope == ValidationScope.ROW:
+                return failed.apply(lambda row: self.make_row_warning(
+                    df=df,
+                    row_index=row.name
                 ), axis='columns')
             elif self.scope == ValidationScope.CELL:
                 return failed.apply(lambda series: series.to_frame().apply(
