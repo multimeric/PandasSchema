@@ -62,3 +62,11 @@ class CombinedValidationWarning(ValidationWarning):
         # Unlike a normal ValidationWarning, this doesn't ask CombinedValidation for a message, it just combines
         # existing messages
         return '{} {} and {}'.format(self.left.prefix, self.left.suffix, self.right.suffix)
+
+    @property
+    def suffix(self) -> str:
+        return '{} and {}'.format(self.left.suffix, self.right.suffix)
+
+    @property
+    def prefix(self) -> str:
+        return self.left.prefix

@@ -40,6 +40,32 @@ class BaseValidation(abc.ABC):
         """
         self.custom_message = message
 
+    def recurse(self, func: typing.Callable[['BaseValidation'], typing.Any]) -> list:
+        """
+        Calls a function on this validation and all of its children (if this is a compound validation)
+        Args:
+            func: A function whose only argument is a single validation. The function might change the validation, or
+            if can return a value, in which case the value will be included in the final result
+
+        Returns:
+            A list of result values
+
+        """
+        return [func(self)]
+
+    def map(self, func: typing.Callable[['BaseValidation'], 'BaseValidation']) -> 'BaseValidation':
+        """
+        Calls a function on this validation and all of its children (if this is a compound validation)
+        This function return a validation that will replace the validation it receives as an argument.
+        Args:
+            func: A function whose only argument is a single validation. The function might change the validation, or
+            if can return a value, in which case the value will be included in the final result
+
+        Returns:
+            A list of result values
+
+        """
+        return func(self)
 
     def make_df_warning(self, df: pd.DataFrame) -> ValidationWarning:
         """
@@ -299,26 +325,22 @@ class SeriesValidation(IndexValidation):
     """
     A type of IndexValidation that expands IndexValidation with the knowledge that it will validate a single Series
     """
+    _index: typing.Optional[DualAxisIndexer]
 
-    def __init__(self, index: typing.Union[RowIndexer, IndexValue, DualAxisIndexer], negated: bool=False, *args, **kwargs):
+    def __init__(self, index: typing.Union[RowIndexer, IndexValue, DualAxisIndexer] = None, negated: bool=False, *args, **kwargs):
         """
         Create a new SeriesValidation
         :param index: The index pointing to the Series to validate. For example, this might be 2 to validate Series
             with index 2, or "first_name" to validate a Series named "first_name". For more advanced indexing, you may
             pass in an instance of the RowIndexer class
         """
-        # We have to convert a single-axis index into a dual-axis index
-        if isinstance(index, DualAxisIndexer):
-            dual = index
-        else:
-            dual = DualAxisIndexer(
-                col_index=index,
-                row_index=BooleanIndexer(index=True, axis=0),
-            )
+        # This convets the index from primitive numbers into a data structure
+        self._index = None
+        self.index = index
 
         super().__init__(
             *args,
-            index=dual,
+            index=self.index,
             **kwargs
         )
 
@@ -328,6 +350,22 @@ class SeriesValidation(IndexValidation):
         depends on the subclass checking for this field whenever it needs to. Even for IndexValidations, we can't invert
         the actual index, because it doesn't exist yet. It's only created after we run the actual validation
         """
+
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, val):
+        # We have to convert a single-axis index into a dual-axis index
+        if val is not None:
+            if isinstance(val, DualAxisIndexer):
+                self._index = val
+            else:
+                self._index = DualAxisIndexer(
+                    col_index=val,
+                    row_index=BooleanIndexer(index=True, axis=0),
+                )
 
     def get_passed_index(self, df: pd.DataFrame) -> DualAxisIndexer:
         index = super().get_passed_index(df)
@@ -408,10 +446,19 @@ class CombinedValidation(BaseValidation):
         self.right = validation_b
         self.axis = axis
 
-    def message(self, warning: ValidationWarning) -> str:
-        # Nothing should ever try to create a ValidationWarning directly from a CombinedValidation,
-        # it should always use the original warnings from the child Validations
-        raise NotImplementedError()
+    def recurse(self, func: typing.Callable[['BaseValidation'], typing.Any]) -> list:
+        return [*super().recurse(func), *self.left.recurse(func), *self.right.recurse(func)]
+
+    def map(self, func):
+        new = func(self)
+        new.left = new.left.map(func)
+        new.right = new.right.map(func)
+        return new
+
+    # def message(self, warning: ValidationWarning) -> str:
+    #     # Nothing should ever try to create a ValidationWarning directly from a CombinedValidation,
+    #     # it should always use the original warnings from the child Validations
+    #     raise NotImplementedError()
 
     # def index_to_warnings_series(self, df: pd.DataFrame, index: DualAxisIndexer, failed: SubSelection):
     #     # We handle this method by deferring to the children

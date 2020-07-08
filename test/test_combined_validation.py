@@ -48,9 +48,10 @@ class Or(unittest.TestCase):
         assert len(warnings) == 3, 'accepts values that should pass'
 
 
-class AndOr(unittest.TestCase):
+class NumericAndOr(unittest.TestCase):
     """
-    Tests a more complex case where we have an "or" and then an "and"
+    Tests a more complex case where we have an "or" and then an "and". This schema allows either numbers
+    represented as either digits or words
     """
     validator = InListValidation(['one', 'two', 'three'], index=0) | (
             IsDtypeValidation(np.int_, index=0) & InRangeValidation(1, 4, index=0)
@@ -90,6 +91,33 @@ class AndOr(unittest.TestCase):
         for warning in warnings:
             print(warning.message)
 
+
+class DateAndOr(unittest.TestCase):
+    """
+    Allows days of the week as either numbers or short words, or long words
+    """
+    # Note: this isn't an actually well-designed validation; the two InLists should really be one validation.
+    # But here we're testing a somewhat complex validation
+    validator = column((
+                        CanConvertValidation(int) & InRangeValidation(min=1, max=8)
+                ) | (
+                        CanConvertValidation(str) & InListValidation(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+                ) | (
+                        CanConvertValidation(str) & InListValidation([
+                    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+                ])
+                ), index=0)
+
+    def test_correct(self):
+        warnings = get_warnings(self.validator, ['Mon', 3, 'Thursday', 1, 'Fri', 6, 7])
+        assert len(warnings) == 0, warnings
+
+    def test_incorrect(self):
+        warnings = get_warnings(self.validator, [0, 8, 'Mondesday', 'Frisday', 'Sund', 'Frid'])
+        assert len(warnings) == 6, warnings
+        for warning in warnings:
+            assert 'CombinedValidation' not in warning.message
+
 class Optional(unittest.TestCase):
     """
     Tests the "optional" method, which Ors the validation with an IsEmptyValidation
@@ -115,5 +143,3 @@ class Optional(unittest.TestCase):
             -1,
             10
         ])) == 4, 'is accepting invalid values'
-
-

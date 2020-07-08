@@ -1,35 +1,58 @@
-import typing
+from typing import Union, Iterable
 
-from pandas_schema.core import IndexValidation
+from pandas_schema.core import IndexValidation, BaseValidation
 from pandas_schema.index import AxisIndexer, IndexValue
 
 
 def column(
-        validations: typing.Iterable['IndexValidation'],
-        index: AxisIndexer = None,
+        validations: Union[Iterable['IndexValidation'], 'IndexValidation'],
+        index = None,
         override: bool = False,
-        allow_empty=False
-):
+        recurse: bool = True,
+        allow_empty: bool = False
+) -> Union[Iterable['IndexValidation'], 'IndexValidation']:
     """A utility method for setting the index data on a set of Validations
 
     Args:
       validations: A list of validations to modify
       index: The index of the series that these validations will now consider
       override: If true, override existing index values. Otherwise keep the existing ones
+      recurse: If true, recurse into child validations
       allow_empty: Allow empty rows (NaN) to pass the validation
     See :py:class:`pandas_schema.validation.IndexSeriesValidation` (Default value = False)
     Returns:
-
     """
-    for valid in validations:
-        if override or valid.index is None:
-            valid.index = index
+    def update_validation(validation: BaseValidation):
+        if isinstance(validation, IndexValidation):
+            if override or validation.index is None:
+                validation.index = index
+
+        if allow_empty:
+            return validation.optional()
+        else:
+            return validation
+
+    if isinstance(validations, Iterable):
+        ret = []
+        for valid in validations:
+            if recurse:
+                ret.append(valid.map(update_validation))
+            else:
+                ret.append(update_validation(valid))
+        return ret
+    else:
+        if recurse:
+            return validations.map(update_validation)
+        else:
+            return update_validation(validations)
+
+    return validations
 
 
 def column_sequence(
-        validations: typing.Iterable['IndexValidation'],
+        validations: Iterable['IndexValidation'],
         override: bool = False
-):
+) -> Iterable['IndexValidation']:
     """A utility method for setting the index data on a set of Validations. Applies a sequential position based index, so
     that the first validation gets index 0, the second gets index 1 etc. Note: this will not modify any index that
     already has some kind of index unless you set override=True
@@ -46,9 +69,10 @@ def column_sequence(
     for i, valid in validations:
         if override or valid.index is None:
             valid.index = AxisIndexer(i, typ='positional')
+    return validations
 
 
-def each_column(validations: typing.Iterable[IndexValidation], columns: IndexValue):
+def each_column(validations: Iterable[IndexValidation], columns: IndexValue):
     """Duplicates a validation and applies it to each column specified
 
     Args:
@@ -90,4 +114,3 @@ def each_column(validations: typing.Iterable[IndexValidation], columns: IndexVal
 #         validations,
 #         index,
 #         position=True
-

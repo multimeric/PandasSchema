@@ -11,3 +11,4 @@
 * [ ] Allow and/or operators between Series-level and row-level validations
 * [ ] Separate ValidationClasses for each scope
 * [ ] Add row-level validations
+* [x] Fix message for DateAndOr test
