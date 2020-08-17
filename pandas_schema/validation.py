@@ -354,6 +354,10 @@ class IsDistinctValidation(_SeriesValidation):
     """
 
     def __init__(self, ignore_nan=False, **kwargs):
+        """
+        :param ignore_nan: Whether or not to ignore nan values when checking for distinct values in a column.
+        """
+
         super().__init__(**kwargs)
         self.ignore_nan = ignore_nan
 
