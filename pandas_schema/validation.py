@@ -353,15 +353,19 @@ class IsDistinctValidation(_SeriesValidation):
     Checks that every element of this column is different from each other element
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, ignore_nan=False, **kwargs):
         super().__init__(**kwargs)
+        self.ignore_nan = ignore_nan
 
     @property
     def default_message(self):
         return 'contains values that are not unique'
 
     def validate(self, series: pd.Series) -> pd.Series:
-        return ~series.duplicated(keep='first')
+        if self.ignore_nan:
+            return ~series.duplicated(keep='first') | series.isna()
+        else:
+            return ~series.duplicated(keep='first')
 
 
 class InListValidation(_SeriesValidation):
