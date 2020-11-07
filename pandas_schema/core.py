@@ -244,6 +244,7 @@ class BaseValidation(abc.ABC):
                                       'Validations that subclass {}'.format(
                 self.__class__))
 
+        # TODO: Propagate the individual validator indexes when we And/Or them together
         return CombinedValidation(self, other, operator=operator.or_)
 
     def __and__(self, other: 'BaseValidation'):
@@ -256,6 +257,7 @@ class BaseValidation(abc.ABC):
                                       'Validations that subclass {}'.format(
                 self.__class__))
 
+        # TODO: Propagate the individual validator indexes when we And/Or them together
         return CombinedValidation(self, other, operator=operator.and_)
 
 

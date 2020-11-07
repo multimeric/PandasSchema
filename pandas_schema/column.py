@@ -22,6 +22,7 @@ def column(
     See :py:class:`pandas_schema.validation.IndexSeriesValidation` (Default value = False)
     Returns:
     """
+    # TODO: Abolish this, and instead propagate the individual validator indexes when we And/Or them together
     def update_validation(validation: BaseValidation):
         if isinstance(validation, IndexValidation):
             if override or validation.index is None:
