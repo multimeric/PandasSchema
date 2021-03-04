@@ -10,6 +10,7 @@ from . import column
 from .validation_warning import ValidationWarning
 from .errors import PanSchArgumentError
 from pandas.api.types import is_categorical_dtype, is_numeric_dtype
+from typing import List
 
 
 class _BaseValidation:
@@ -212,6 +213,35 @@ class InRangeValidation(_SeriesValidation):
     def validate(self, series: pd.Series) -> pd.Series:
         series = pd.to_numeric(series, errors="coerce")
         return (series >= self.min) & (series < self.max)
+
+
+class IsTypeValidation(_SeriesValidation):
+    """
+    Description: Checks that each element in the series equals one of the predefined types.
+    Usage: For example with types str and int:
+        IsTypeValidation(allowed_types=[str, int])
+    """
+
+    def __init__(self, allowed_types: List, **kwargs):
+        """
+        :param allowed_types: List containing the allowed data types.
+        """
+        self.allowed_types: List = allowed_types
+        super().__init__(**kwargs)
+
+    @property
+    def default_message(self):
+        return f"was not of listed type {self.allowed_types.__str__()}"
+
+    def validate(self, series: pd.Series) -> pd.Series:
+        # Loop and validate per item (i.e. row)
+        return_data = []
+        for index, value in series.iteritems():
+            bool_value: bool = type(value) in self.allowed_types
+            return_data.append(bool_value)
+
+        # Return as series
+        return pd.Series(data=return_data, index=series.index)
 
 
 class IsDtypeValidation(_BaseValidation):
