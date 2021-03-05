@@ -226,7 +226,7 @@ class IsTypeValidation(_SeriesValidation):
         """
         :param allowed_types: List containing the allowed data types.
         """
-        self.allowed_types: List = allowed_types
+        self.allowed_types = allowed_types
         super().__init__(**kwargs)
 
     @property
