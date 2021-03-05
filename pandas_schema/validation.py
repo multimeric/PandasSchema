@@ -237,7 +237,7 @@ class IsTypeValidation(_SeriesValidation):
         # Loop and validate per item (i.e. row)
         return_data = []
         for index, value in series.iteritems():
-            bool_value: bool = type(value) in self.allowed_types
+            bool_value = type(value) in self.allowed_types
             return_data.append(bool_value)
 
         # Return as series
