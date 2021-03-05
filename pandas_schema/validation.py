@@ -231,7 +231,7 @@ class IsTypeValidation(_SeriesValidation):
 
     @property
     def default_message(self):
-        return f"was not of listed type {self.allowed_types.__str__()}"
+        return "was not of listed type {}".format(self.allowed_types.__str__())
 
     def validate(self, series: pd.Series) -> pd.Series:
         # Loop and validate per item (i.e. row)
