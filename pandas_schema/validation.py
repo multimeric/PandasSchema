@@ -258,7 +258,7 @@ class IsTypeValidation(_SeriesValidation):
 
     @property
     def default_message(self):
-        return f"was not of listed type {self.allowed_types.__str__()}"
+        return "was not of listed type {}".format(self.allowed_types.__str__())
 
     def get_errors(self, series: pd.Series, column: 'column.Column' = None):
 
