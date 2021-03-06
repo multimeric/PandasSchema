@@ -215,11 +215,38 @@ class InRangeValidation(_SeriesValidation):
         return (series >= self.min) & (series < self.max)
 
 
+def convert_type_to_dtype(type_to_convert: type) -> np.dtype:
+    """
+    Converts type to the numpy variant dtype.
+    :param type_to_convert: The type to convert to np.dtype.
+    :return: Numpy dtype
+    """
+    # DISLIKE 02: It is doubtful if this function converts all types correctly to numpy in accordance to a Pandas
+    #   Series.
+    if type_to_convert == int:
+        return np.dtype(np.int64)  # np.dtype(int) results in np.int32.
+    elif type_to_convert == str:
+        return np.dtype(object)
+    else:
+        return np.dtype(type_to_convert)
+
+
 class IsTypeValidation(_SeriesValidation):
     """
-    Description: Checks that each element in the series equals one of the predefined types.
-    Usage: For example with types str and int:
-        IsTypeValidation(allowed_types=[str, int])
+    Checks that each element in the series equals one of the allowed types. This validation only makes sense for an
+    object series.
+
+    Examples
+    --------
+    >>> v = IsTypeValidation(allowed_types=[str, int])
+    >>> s = pd.Series(data=["alpha", 1.4, True, "beta", 5])
+    >>> v.validate(series=s)
+    0     True
+    1    False
+    2    False
+    3     True
+    4     True
+    dtype: bool
     """
 
     def __init__(self, allowed_types: List, **kwargs):
@@ -231,17 +258,35 @@ class IsTypeValidation(_SeriesValidation):
 
     @property
     def default_message(self):
-        return "was not of listed type {}".format(self.allowed_types.__str__())
+        return f"was not of listed type {self.allowed_types.__str__()}"
+
+    def get_errors(self, series: pd.Series, column: 'column.Column' = None):
+
+        # Numpy dtypes other than 'object' can be validated with IsDtypeValidation instead, but only if the
+        # allowed_types is singular. Otherwise continue.
+        # DISLIKE 01: IsDtypeValidation only allows a single dtype. So this if-statement redirects only if one type is
+        #   specified in the list self.allowed_types.
+        if not series.dtype == np.dtype(object) and len(self.allowed_types) == 1:
+            allowed_type = convert_type_to_dtype(type_to_convert=self.allowed_types[0])
+            new_validation_method = IsDtypeValidation(dtype=np.dtype(allowed_type))
+            return new_validation_method.get_errors(series=series)
+
+        # Else, validate each element along the allowed types.
+        errors = []
+        valid_indices = series.index[~self.validate(series)]
+        for i in valid_indices:
+            element = series[i]
+            errors.append(ValidationWarning(
+                message=self.message,
+                value=element,
+                row=i,
+                column=series.name
+            ))
+
+        return errors
 
     def validate(self, series: pd.Series) -> pd.Series:
-        # Loop and validate per item (i.e. row)
-        return_data = []
-        for index, value in series.iteritems():
-            bool_value = type(value) in self.allowed_types
-            return_data.append(bool_value)
-
-        # Return as series
-        return pd.Series(data=return_data, index=series.index)
+        return series.apply(type).isin(self.allowed_types)
 
 
 class IsDtypeValidation(_BaseValidation):
