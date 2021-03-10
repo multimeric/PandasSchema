@@ -290,7 +290,7 @@ class IsDtypeValidation(_BaseValidation):
         python_type = type(np.zeros(1, series.dtype).tolist()[0])  # First convert to Python type.
         return series.astype(python_type)  # Then convert back based on system preference.
 
-    def get_errors(self, series: pd.Series, column: 'column.Column' = None):
+    def get_errors(self, series: pd.Series, column: 'column.Column' = None) -> list:
 
         # Convert to system dependent default numpy dtype.
         series_converted_type = self.convert_series_dtype_to_system_default(series=series)
