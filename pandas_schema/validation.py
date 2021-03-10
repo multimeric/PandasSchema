@@ -287,6 +287,12 @@ class IsDtypeValidation(_BaseValidation):
         """ On Windows np.dtype(int) returns np.int32, whereas Pandas.Series([1, 2, 3, ..., n]).dtype returns np.int64.
         Linux does return np.int64 for np.dtype(int). Other types (float, bool, etc) return equal types.
         For this reason, the series is converted back and forth to ensure equal types between pandas and numpy."""
+
+        # If not numeric, no conversion necessary
+        if not np.issubdtype(series.dtype, np.number):
+            return series
+
+        # Convert
         python_type = type(np.zeros(1, series.dtype).tolist()[0])  # First convert to Python type.
         return series.astype(python_type)  # Then convert back based on system preference.
 

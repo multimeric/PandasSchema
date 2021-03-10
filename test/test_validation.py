@@ -491,7 +491,7 @@ class Dtype(ValidationTestBase):
     """
 
     def setUp(self):
-        self.validator = IsDtypeValidation(np.dtype(np.number))
+        self.validator = IsDtypeValidation(np.number)
 
     def test_valid_items(self):
         errors = self.validator.get_errors(pd.Series(
