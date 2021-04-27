@@ -3,16 +3,16 @@ import unittest
 import pandas as pd
 from numpy.core.multiarray import dtype
 
-from pandas_schema import Schema, Column
-from pandas_schema.validation import LeadingWhitespaceValidation, IsDtypeValidation
+from pandas_schema.schema import Schema
+from pandas_schema.validations import LeadingWhitespaceValidation, IsDtypeValidation
 from pandas_schema.errors import PanSchArgumentError
 
 
 class UnorderedSchema(unittest.TestCase):
-    schema = Schema([
-        Column('a'),
-        Column('b', [LeadingWhitespaceValidation()])
-    ], ordered=False)
+    # schema = Schema([
+        # Column('a'),
+        # Column('b', [LeadingWhitespaceValidation()])
+    # ], ordered=False)
 
     def test_fields(self):
         self.assertEqual(len(self.schema.columns), 2, 'The schema is not storing all of its columns')
@@ -138,10 +138,10 @@ b,a
 
 
 class OrderedSchema(unittest.TestCase):
-    schema = Schema([
-        Column('a', [LeadingWhitespaceValidation()]),
-        Column('b')
-    ], ordered=True)
+    # schema = Schema([
+    #     Column('a', [LeadingWhitespaceValidation()]),
+    #     Column('b')
+    # ], ordered=True)
 
     def test_mixed_columns(self):
         """

@@ -82,7 +82,14 @@ setup(
     ],
     keywords='pandas csv verification schema',
     packages=find_packages(include=['pandas_schema']),
-    install_requires=['numpy', 'pandas>=0.19'],
+    install_requires=[
+        'numpy',
+        'pandas>=0.23',
+        'dataclasses'
+    ],
+    extras_requires={
+        'dev': ['pytest'],
+    },
     cmdclass={
         'build_readme': BuildReadme,
         'build_site': BuildHtmlDocs
