@@ -136,6 +136,13 @@ b,a
         # should raise a PanSchArgumentError
         self.assertRaises(PanSchArgumentError, self.schema.validate, df, columns=['c'])
 
+    def test_column_not_present_shown(self):
+
+        df = pd.DataFrame.from_dict({'a': [1, 2, 3]})
+
+        out = self.schema.validate(df, columns=['a', 'b'])
+        assert out[0].message == 'The column b exists in the schema but not in the data frame'
+
 
 class OrderedSchema(unittest.TestCase):
     schema = Schema([
