@@ -660,6 +660,18 @@ class GetErrorTests(ValidationTestBase):
         errors = validator.get_errors(pd.Series(self.vals), Column('', allow_empty=False))
         self.assertEqual(len(errors), len(self.vals))
 
+    def test_in_range_optional_missing(self):
+        validator = InRangeValidation(min=0)
+        errors = validator.get_errors(pd.Series(), Column('', optional=True))
+
+        self.assertEqual(len(errors), 0)
+
+    def test_in_range_optional_with_error(self):
+        validator = InRangeValidation(min=4)
+        errors = validator.get_errors(pd.Series(self.vals), Column('', optional=False))
+
+        self.assertEqual(len(errors), len(self.vals))
+
 
 class PandasDtypeTests(ValidationTestBase):
     """

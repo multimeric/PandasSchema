@@ -73,7 +73,7 @@ class Schema:
             for column in columns_to_pair:
 
                 # Throw an error if the schema column isn't in the data frame
-                if column.name not in df:
+                if column.name not in df and not column.optional:
                     errors.append(ValidationWarning(
                         'The column {} exists in the schema but not in the data frame'.format(column.name)))
                     return errors
