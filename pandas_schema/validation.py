@@ -217,8 +217,7 @@ class InRangeValidation(_SeriesValidation):
 
 class IsTypeValidation(_SeriesValidation):
     """
-    Checks that each element in the series equals one of the allowed types. This validation only makes sense for an
-    object series.
+    Checks that each element in the series equals one of the provided allowed types.
 
     Examples
     --------
@@ -235,10 +234,25 @@ class IsTypeValidation(_SeriesValidation):
 
     def __init__(self, allowed_types: List, **kwargs):
         """
-        :param allowed_types: List containing the allowed data types.
+        :param allowed_types: List describing which types are allowed. The list may only contain the build-in
+            Python-types "str", "int", "float" and/or "bool".
         """
+        self._allowed_build_in_types = [str, int, float, bool]
         self.allowed_types = allowed_types
         super().__init__(**kwargs)
+        self._validate_input()
+
+    def _validate_input(self):
+        if type(self.allowed_types) != list:
+            raise PanSchArgumentError('The argument "allowed_types" passed to IsTypeValidation is not of type list. '
+                                      'Provide a list containing one or more of the Python built-in types "str", '
+                                      '"int", "float" or "bool".')
+
+        for allowed_type in self.allowed_types:
+            if allowed_type not in self._allowed_build_in_types:
+                raise PanSchArgumentError('The item "{}" provided in the argument "allowed_types" as passed to '
+                                          'IsTypeValidation is not of the correct type. Provide one of Python built-in '
+                                          'types "str", "int", "float" or "bool".'.format(allowed_type))
 
     @property
     def default_message(self):
