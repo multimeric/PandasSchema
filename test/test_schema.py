@@ -156,8 +156,7 @@ b,a
         df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
         # should detect no errors
         errors = self.schema.validate(df)
-        error: ValidationWarning
-        for error in errors:
+        for error in errors:  # type: ValidationWarning
             self.assertIsNotNone(error.column, 'Column name should not be None')
 
     def test_invalid_column_count_gives_row_number_as_0_for_header(self):
@@ -181,8 +180,7 @@ b,a
         df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
         # should detect no errors
         errors = self.schema.validate(df)
-        error: ValidationWarning
-        for error in errors:
+        for error in errors:  # type: ValidationWarning
             self.assertEqual(error.row, 0, 'Row number should be 0')
 
 
