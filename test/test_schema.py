@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 from numpy.core.multiarray import dtype
 
-from pandas_schema import Schema, Column
+from pandas_schema import Schema, Column, ValidationWarning
 from pandas_schema.validation import LeadingWhitespaceValidation, IsDtypeValidation
 from pandas_schema.errors import PanSchArgumentError
 
@@ -135,6 +135,55 @@ b,a
 
         # should raise a PanSchArgumentError
         self.assertRaises(PanSchArgumentError, self.schema.validate, df, columns=['c'])
+
+    def test_column_not_matching_not_gives_column_name_as_none(self):
+        """
+        Tests that when ordered=False, ValidationWarning object should not
+        return column name as None.
+
+        Schema         a (validation)   b (validation)
+        Data Frame     c (error)        d (error)
+
+        There will be an error for column names, and ValidationWarning object
+        should return the column name.
+        """
+        data = StringIO('''
+            c,d
+             1,1
+            2,3
+            3,3
+        ''')
+        df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
+        # should detect no errors
+        errors = self.schema.validate(df)
+        error: ValidationWarning
+        for error in errors:
+            self.assertIsNotNone(error.column, 'Column name should not be None')
+
+    def test_invalid_column_count_gives_row_number_as_0_for_header(self):
+        """
+        Tests that when ordered=False, Invalid column count should return
+
+        Schema         a                b* (validation)
+        Data Frame     a                b (error)
+
+        column* is not being passed
+
+        There will be an error if count of columns is not equal to
+        columns in schema, and error object will return row as 0.
+        """
+        data = StringIO('''
+            a
+             1
+            2
+            3
+        ''')
+        df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
+        # should detect no errors
+        errors = self.schema.validate(df)
+        error: ValidationWarning
+        for error in errors:
+            self.assertEqual(error.row, 0, 'Row number should be 0')
 
 
 class OrderedSchema(unittest.TestCase):
