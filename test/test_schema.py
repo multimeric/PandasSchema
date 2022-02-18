@@ -3,7 +3,7 @@ import unittest
 import pandas as pd
 from numpy.core.multiarray import dtype
 
-from pandas_schema import Schema, Column
+from pandas_schema import Schema, Column, ValidationWarning
 from pandas_schema.validation import LeadingWhitespaceValidation, IsDtypeValidation
 from pandas_schema.errors import PanSchArgumentError
 
@@ -135,6 +135,51 @@ b,a
 
         # should raise a PanSchArgumentError
         self.assertRaises(PanSchArgumentError, self.schema.validate, df, columns=['c'])
+
+    def test_column_not_matching_column_name(self):
+        """
+        Tests that when ordered=False, ValidationWarning object should not have column name as None.
+
+        Schema         a (validation)   b (validation)
+        Data Frame     c (error)        d (error)
+
+        There will be an error for column names, and ValidationWarning object
+        should return the column name.
+        """
+        data = StringIO('''
+            c,d
+             1,1
+            2,3
+            3,3
+        ''')
+        df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
+        errors = self.schema.validate(df)
+        for error in errors:  # type: ValidationWarning
+            self.assertIsNotNone(error.column, 'Column name should not be None')
+            self.assertIn(error.column, ["a", "b"], "Column name is a or b instead of None")
+
+    def test_invalid_column_count_row_number(self):
+        """
+        Tests that when ordered=False, Invalid column count should return
+
+        Schema         a                b* (validation)
+        Data Frame     a                b (error)
+
+        column* is not being passed
+
+        There will be an error if count of columns is not equal to
+        columns in schema, and error object will return row as 0.
+        """
+        data = StringIO('''
+            a
+             1
+            2
+            3
+        ''')
+        df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
+        errors = self.schema.validate(df)
+        for error in errors:  # type: ValidationWarning
+            self.assertEqual(error.row, -1, 'Row number should be -1')
 
 
 class OrderedSchema(unittest.TestCase):

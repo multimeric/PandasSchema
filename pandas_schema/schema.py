@@ -47,9 +47,7 @@ class Schema:
             if df_cols != schema_cols:
                 errors.append(
                     ValidationWarning(
-                        'Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(
-                            schema_cols,
-                            df_cols)
+                        message='Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(schema_cols, df_cols)
                     )
                 )
                 return errors
@@ -74,8 +72,12 @@ class Schema:
 
                 # Throw an error if the schema column isn't in the data frame
                 if column.name not in df:
-                    errors.append(ValidationWarning(
-                        'The column {} exists in the schema but not in the data frame'.format(column.name)))
+                    errors.append(
+                        ValidationWarning(
+                            message='The column {} exists in the schema but not in the data frame'.format(column.name),
+                            column=column.name
+                        )
+                    )
                     return errors
 
                 column_pairs.append((df[column.name], column))
