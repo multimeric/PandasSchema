@@ -47,8 +47,7 @@ class Schema:
             if df_cols != schema_cols:
                 errors.append(
                     ValidationWarning(
-                        message='Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(schema_cols, df_cols),
-                        row=0
+                        message='Invalid number of columns. The schema specifies {}, but the data frame has {}'.format(schema_cols, df_cols)
                     )
                 )
                 return errors
