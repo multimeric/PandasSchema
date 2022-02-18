@@ -1,8 +1,9 @@
+
 PandasSchema
 ************
 
 For the full documentation, refer to the `Github Pages Website
-<https://multimeric.github.io/PandasSchema/>`_.
+<https://tmiguelt.github.io/PandasSchema/>`_.
 
 ======================================================================
 
@@ -13,7 +14,7 @@ quickly and efficiently.
 
 For example, say your code expects a CSV that looks a bit like this:
 
-.. code::
+.. code:: default
 
    Given Name,Family Name,Age,Sex,Customer ID
    Gerald,Hampton,82,Male,2582GABK
