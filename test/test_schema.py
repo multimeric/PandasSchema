@@ -138,8 +138,7 @@ b,a
 
     def test_column_not_matching_not_gives_column_name_as_none(self):
         """
-        Tests that when ordered=False, ValidationWarning object should not
-        return column name as None.
+        Tests that when ordered=False, ValidationWarning object should not have column name as None.
 
         Schema         a (validation)   b (validation)
         Data Frame     c (error)        d (error)
@@ -158,6 +157,7 @@ b,a
         errors = self.schema.validate(df)
         for error in errors:  # type: ValidationWarning
             self.assertIsNotNone(error.column, 'Column name should not be None')
+            self.assertEqual("a" or "b", error.column, "Column name is a or b instead of None")
 
     def test_invalid_column_count_gives_row_number_as_0_for_header(self):
         """
@@ -181,7 +181,7 @@ b,a
         # should detect no errors
         errors = self.schema.validate(df)
         for error in errors:  # type: ValidationWarning
-            self.assertEqual(error.row, 0, 'Row number should be 0')
+            self.assertEqual(error.row, -1, 'Row number should be -1')
 
 
 class OrderedSchema(unittest.TestCase):
