@@ -153,7 +153,6 @@ b,a
             3,3
         ''')
         df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
-        # should detect no errors
         errors = self.schema.validate(df)
         for error in errors:  # type: ValidationWarning
             self.assertIsNotNone(error.column, 'Column name should not be None')
@@ -178,7 +177,6 @@ b,a
             3
         ''')
         df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
-        # should detect no errors
         errors = self.schema.validate(df)
         for error in errors:  # type: ValidationWarning
             self.assertEqual(error.row, -1, 'Row number should be -1')
