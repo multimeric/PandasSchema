@@ -154,9 +154,7 @@ b,a
         ''')
         df = pd.read_csv(filepath_or_buffer=data, sep=',', header=0, dtype=str)
         errors = self.schema.validate(df)
-        for error in errors:  # type: ValidationWarning
-            self.assertIsNotNone(error.column, 'Column name should not be None')
-            self.assertIn(error.column, ["a", "b"], "Column name is a or b instead of None")
+        self.assertSetEqual({error.column for error in errors}, {"a", "b"})
 
     def test_invalid_column_count_row_number(self):
         """

@@ -78,9 +78,8 @@ class Schema:
                             column=column.name
                         )
                     )
-                    return errors
-
-                column_pairs.append((df[column.name], column))
+                else:
+                    column_pairs.append((df[column.name], column))
 
         # Iterate over each pair of schema columns and data frame series and run validations
         for series, column in column_pairs:
