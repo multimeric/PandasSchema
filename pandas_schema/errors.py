@@ -1,4 +1,4 @@
-class PanSchError(BaseException):
+class PanSchError(Exception):
     """
     Base class for all pandas_schema exceptions
     """
